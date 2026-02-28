@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SESG Project Gantt Chart</title>
+<style>
+  :root {
+    --sesg-teal: #6CC5C0;
+    --sesg-teal-dark: #4DA8A3;
+    --sesg-teal-light: #8DD5D1;
+    --sesg-teal-faint: rgba(108, 197, 192, 0.12);
+    --sesg-teal-glow: rgba(108, 197, 192, 0.25);
+    --sesg-black: #1A1D21;
+    --sesg-dark: #222629;
+    --sesg-white: #FFFFFF;
+    --bg: #111416;
+    --surface: #1A1D21;
+    --surface2: #262B30;
+    --surface3: #2F353B;
+    --border: #3A4149;
+    --border-light: rgba(108, 197, 192, 0.2);
+    --text: #EDF2F7;
+    --text-muted: #8899A6;
+    --accent: var(--sesg-teal);
+    --success: #34D399;
+    --success-dark: #059669;
+    --warning: #FBBF24;
+    --warning-dark: #D97706;
+    --danger: #F87171;
+    --danger-dark: #DC2626;
+    --milestone: #A78BFA;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* ── Header ── */
+  .header { background:linear-gradient(135deg,var(--sesg-black),var(--bg)); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+  .header-brand { display:flex; align-items:center; gap:14px; }
+  .header-brand img { height:36px; width:auto; }
+  .header h1 { font-size:1.25rem; font-weight:700; color:var(--sesg-teal); }
+  .header h1 span { color:var(--text-muted); font-weight:400; font-size:0.85rem; margin-left:6px; }
+  .header-actions { display:flex; gap:8px; align-items:center; }
+
+  /* ── Tabs ── */
+  .tabs { display:flex; gap:4px; padding:10px 24px; background:var(--surface); border-bottom:1px solid var(--border); }
+  .tab { padding:8px 20px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:500; color:var(--text-muted); background:transparent; border:1px solid transparent; transition:all 0.2s; }
+  .tab:hover { background:var(--surface2); color:var(--text); }
+  .tab.active { background:var(--sesg-teal); color:var(--sesg-black); font-weight:600; border-color:var(--sesg-teal); }
+
+  /* ── Buttons ── */
+  .btn { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); cursor:pointer; font-size:0.8rem; font-weight:500; transition:all 0.2s; display:inline-flex; align-items:center; gap:6px; }
+  .btn:hover { background:var(--surface3); border-color:var(--sesg-teal); }
+  .btn-primary { background:var(--sesg-teal); border-color:var(--sesg-teal); color:var(--sesg-black); font-weight:600; }
+  .btn-primary:hover { background:var(--sesg-teal-dark); }
+  .btn-danger { background:var(--danger-dark); border-color:var(--danger-dark); color:white; }
+  .btn-success { background:var(--success-dark); border-color:var(--success-dark); color:white; }
+  .btn-sm { padding:5px 12px; font-size:0.75rem; }
+
+  /* ── Project Bar ── */
+  .project-bar { display:flex; align-items:center; gap:12px; padding:10px 24px; background:var(--bg); border-bottom:1px solid var(--border); }
+  .project-bar label { font-size:0.82rem; color:var(--text-muted); font-weight:500; }
+  .project-bar select,.project-bar input { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; font-size:0.85rem; }
+  .project-bar select:focus,.project-bar input:focus { outline:none; border-color:var(--sesg-teal); box-shadow:0 0 0 2px var(--sesg-teal-glow); }
+
+  /* ── Gantt Wrapper ── */
+  .gantt-wrapper { display:flex; flex:1; overflow:hidden; height:calc(100vh - 160px); }
+
+  /* ── Task Table ── */
+  .task-table { min-width:720px; max-width:720px; overflow-y:auto; overflow-x:auto; border-right:2px solid var(--sesg-teal); background:var(--surface); }
+  .task-table table { width:100%; border-collapse:collapse; font-size:0.78rem; }
+  .task-table th { padding:10px 8px; text-align:left; font-weight:600; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--sesg-teal); background:var(--bg); position:sticky; top:0; z-index:10; border-bottom:2px solid var(--border); white-space:nowrap; }
+  .task-table td { padding:6px 8px; border-bottom:1px solid rgba(58,65,73,0.4); vertical-align:middle; white-space:nowrap; }
+  .task-table tr:hover td { background:var(--sesg-teal-faint); }
+  .task-table tr.milestone-row td { background:rgba(167,139,250,0.08); }
+  .task-name-cell { display:flex; align-items:center; gap:6px; max-width:180px; }
+  .task-name-cell span { overflow:hidden; text-overflow:ellipsis; }
+  .milestone-icon { width:10px; height:10px; background:var(--milestone); transform:rotate(45deg); flex-shrink:0; border-radius:2px; }
+  .progress-bar-cell { display:flex; align-items:center; gap:6px; }
+  .mini-progress { width:50px; height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+  .mini-progress-fill { height:100%; border-radius:3px; transition:width 0.3s; }
+  .category-badge { padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:500; display:inline-block; }
+  .action-btns { display:flex; gap:4px; }
+  .action-btns button { width:24px; height:24px; border:none; border-radius:4px; cursor:pointer; font-size:0.7rem; display:flex; align-items:center; justify-content:center; transition:0.2s; }
+  .edit-btn { background:var(--sesg-teal); color:var(--sesg-black); }
+  .edit-btn:hover { background:var(--sesg-teal-dark); }
+  .del-btn { background:var(--danger-dark); color:white; }
+  .del-btn:hover { opacity:0.8; }
+
+  /* ── Gantt Chart with top scrollbar ── */
+  .gantt-chart-wrapper { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
+  .gantt-top-scroll { overflow-x:auto; overflow-y:hidden; flex-shrink:0; background:var(--surface); border-bottom:1px solid var(--border); }
+  .gantt-top-scroll::-webkit-scrollbar { height:10px; }
+  .gantt-top-scroll::-webkit-scrollbar-track { background:var(--surface); border-radius:5px; }
+  .gantt-top-scroll::-webkit-scrollbar-thumb { background:var(--sesg-teal-dark); border-radius:5px; border:2px solid var(--surface); }
+  .gantt-top-scroll::-webkit-scrollbar-thumb:hover { background:var(--sesg-teal); }
+  .gantt-top-scroll-inner { height:1px; }
+  .gantt-chart { flex:1; overflow:auto; position:relative; background:var(--bg); }
+  .gantt-chart::-webkit-scrollbar:horizontal { height:0px; }
+  .gantt-header { position:sticky; top:0; z-index:10; background:var(--bg); border-bottom:2px solid var(--border); }
+  .gantt-header-months { display:flex; border-bottom:1px solid var(--border); }
+  .gantt-month { font-size:0.75rem; font-weight:600; color:var(--sesg-teal); padding:6px 0; text-align:center; border-right:1px solid rgba(58,65,73,0.4); }
+  .gantt-header-days { display:flex; }
+  .gantt-day { width:32px; min-width:32px; text-align:center; font-size:0.6rem; color:var(--text-muted); padding:4px 0; border-right:1px solid rgba(58,65,73,0.15); }
+  .gantt-day.weekend { background:rgba(108,197,192,0.04); }
+  .gantt-day.today { background:rgba(108,197,192,0.15); color:var(--sesg-teal); font-weight:700; }
+  .gantt-body { position:relative; }
+  .gantt-row { height:35px; display:flex; align-items:center; border-bottom:1px solid rgba(58,65,73,0.15); position:relative; }
+  .gantt-row-bg { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; }
+  .gantt-row-bg-cell { width:32px; min-width:32px; border-right:1px solid rgba(58,65,73,0.08); }
+  .gantt-row-bg-cell.weekend { background:rgba(108,197,192,0.03); }
+  .gantt-bar { position:absolute; height:22px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:600; color:white; cursor:pointer; transition:opacity 0.2s,transform 0.15s; z-index:2; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+  .gantt-bar:hover { opacity:0.9; transform:scaleY(1.1); }
+  .gantt-bar-progress { position:absolute; left:0; top:0; bottom:0; border-radius:6px; opacity:0.3; background:white; }
+  .gantt-bar-label { position:relative; z-index:1; padding:0 6px; text-shadow:0 1px 3px rgba(0,0,0,0.6); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .gantt-milestone-marker { position:absolute; width:14px; height:14px; background:var(--milestone); transform:rotate(45deg); z-index:3; cursor:pointer; border-radius:2px; box-shadow:0 0 10px rgba(167,139,250,0.5); transition:0.2s; }
+  .gantt-milestone-marker:hover { box-shadow:0 0 16px rgba(167,139,250,0.8); transform:rotate(45deg) scale(1.2); }
+  .dependency-svg { position:absolute; top:0; left:0; pointer-events:none; z-index:1; }
+  .today-line { position:absolute; top:0; width:2px; background:var(--sesg-teal); z-index:5; pointer-events:none; box-shadow:0 0 8px var(--sesg-teal-glow); }
+  .today-line::before { content:'TODAY'; position:absolute; top:-18px; left:-18px; font-size:0.55rem; font-weight:700; letter-spacing:1px; color:var(--sesg-teal); background:var(--bg); padding:1px 4px; border-radius:3px; }
+
+  /* ── Modal ── */
+  .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.65); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+  .modal-overlay.active { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--sesg-teal); border-radius:16px; padding:28px; width:520px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 30px var(--sesg-teal-glow); }
+  .modal h2 { font-size:1.1rem; margin-bottom:20px; color:var(--sesg-teal); }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-group { display:flex; flex-direction:column; gap:4px; }
+  .form-group.full { grid-column:1/-1; }
+  .form-group label { font-size:0.72rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+  .form-group input,.form-group select { padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.85rem; transition:border-color 0.2s,box-shadow 0.2s; }
+  .form-group input:focus,.form-group select:focus { outline:none; border-color:var(--sesg-teal); box-shadow:0 0 0 3px var(--sesg-teal-glow); }
+  .modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
+
+  /* ═══════════════════════════════════
+     HIGH LEVEL VIEW - CONSOLIDATED
+  ═══════════════════════════════════ */
+  .hl-container { padding:24px; overflow:hidden; height:calc(100vh - 110px); }
+
+  /* ── HL Top Scrollbar ── */
+  .hl-top-scroll { overflow-x:auto; overflow-y:hidden; flex-shrink:0; background:var(--surface); border-bottom:1px solid var(--border); }
+  .hl-top-scroll::-webkit-scrollbar { height:10px; }
+  .hl-top-scroll::-webkit-scrollbar-track { background:var(--surface); border-radius:5px; }
+  .hl-top-scroll::-webkit-scrollbar-thumb { background:var(--sesg-teal-dark); border-radius:5px; border:2px solid var(--surface); }
+  .hl-top-scroll::-webkit-scrollbar-thumb:hover { background:var(--sesg-teal); }
+  .hl-top-scroll-inner { height:1px; }
+
+  /* ── HL Main Layout (mirrors detailed view) ── */
+  .hl-wrapper { display:flex; height:100%; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  .hl-info-panel { width:290px; min-width:290px; display:flex; flex-direction:column; border-right:2px solid var(--sesg-teal); background:var(--surface); overflow:hidden; }
+  .hl-info-header { display:flex; align-items:stretch; height:55px; background:var(--bg); border-bottom:2px solid var(--border); flex-shrink:0; }
+  .hl-info-header-label { flex:1; padding:0 16px; display:flex; align-items:center; font-size:0.7rem; font-weight:600; color:var(--sesg-teal); text-transform:uppercase; letter-spacing:0.5px; }
+  .hl-info-header-pct { width:70px; min-width:70px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; color:var(--text-muted); font-weight:600; border-left:1px solid var(--border); }
+  .hl-info-body { flex:1; overflow:hidden; }
+  .hl-info-row { display:flex; align-items:center; height:56px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.2s; }
+  .hl-info-row:last-child { border-bottom:none; }
+  .hl-info-row:hover { background:var(--sesg-teal-faint); }
+
+  .hl-chart-area { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
+  .hl-chart { flex:1; overflow:auto; background:var(--bg); }
+  .hl-chart::-webkit-scrollbar:horizontal { height:0px; }
+
+  /* ── HL Timeline Header ── */
+  .hl-timeline-header { position:sticky; top:0; z-index:10; background:var(--bg); border-bottom:2px solid var(--border); }
+  .hl-tl-months { display:flex; border-bottom:1px solid var(--border); }
+  .hl-tl-weeks { display:flex; }
+  .hl-tl-month { text-align:center; font-size:0.72rem; font-weight:600; color:var(--sesg-teal); height:28px; line-height:28px; border-right:1px solid rgba(58,65,73,0.3); overflow:hidden; white-space:nowrap; }
+  .hl-tl-week { text-align:center; font-size:0.58rem; color:var(--text-muted); height:24px; line-height:24px; border-right:1px solid rgba(58,65,73,0.15); overflow:hidden; white-space:nowrap; }
+
+  /* ── HL Project Info ── */
+  .hl-proj-info { flex:1; padding:10px 16px; overflow:hidden; }
+  .hl-proj-name { font-size:0.82rem; font-weight:700; display:flex; align-items:center; gap:8px; margin-bottom:3px; }
+  .hl-proj-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+  .hl-proj-meta { font-size:0.65rem; color:var(--text-muted); }
+  .hl-proj-pct-cell { width:70px; min-width:70px; text-align:center; font-weight:700; font-size:0.85rem; border-left:1px solid var(--border); display:flex; align-items:center; justify-content:center; }
+
+  /* ── HL Track ── */
+  .hl-track-row { height:56px; position:relative; border-bottom:1px solid var(--border); }
+  .hl-track-row:last-child { border-bottom:none; }
+  .hl-proj-bar-bg { position:absolute; top:18px; height:20px; background:var(--surface2); border-radius:6px; border:1px solid var(--border); }
+  .hl-proj-bar-fill { position:absolute; top:18px; height:20px; border-radius:6px; opacity:0.85; transition:width 0.5s; }
+  .hl-proj-ms { position:absolute; width:10px; height:10px; background:var(--milestone); transform:rotate(45deg); top:23px; z-index:3; border-radius:1px; box-shadow:0 0 6px rgba(167,139,250,0.4); }
+  .hl-proj-today { position:absolute; top:0; bottom:0; width:2px; background:var(--sesg-teal); z-index:4; opacity:0.5; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--surface2); border-radius:4px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--sesg-teal-dark); }
+  .hidden { display:none !important; }
+  .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; height:300px; color:var(--text-muted); gap:12px; }
+  .empty-state p { font-size:0.9rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <img src="sesg-logo.svg" alt="SESG">
+    <h1>Project Gantt <span>| Portfolio Tracker</span></h1>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-sm" onclick="exportAllJSON()">Export JSON</button>
+    <button class="btn btn-sm" onclick="document.getElementById('importFile').click()">Import JSON</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    <button class="btn btn-sm btn-success" onclick="exportCSV()">Export CSV</button>
+    <span style="width:1px;height:24px;background:var(--border);margin:0 4px"></span>
+    <button class="btn btn-sm btn-primary" onclick="downloadShareable()" title="Save this file with all your data baked in — save it back to the shared drive and your team just opens it">Publish for Team</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-view="detailed" onclick="switchView('detailed')">Detailed Project View</div>
+  <div class="tab" data-view="highlevel" onclick="switchView('highlevel')">High-Level Overview</div>
+</div>
+
+<div id="detailedView">
+  <div class="project-bar">
+    <label>Project:</label>
+    <select id="projectSelect" onchange="switchProject()"></select>
+    <button class="btn btn-sm btn-primary" onclick="openProjectModal()">+ New Project</button>
+    <button class="btn btn-sm btn-danger" onclick="deleteProject()">Delete Project</button>
+    <span style="flex:1"></span>
+    <button class="btn btn-sm btn-primary" onclick="openTaskModal()">+ Add Task</button>
+    <button class="btn btn-sm" onclick="openMilestoneModal()">+ Milestone</button>
+  </div>
+  <div class="gantt-wrapper">
+    <div class="task-table">
+      <table>
+        <thead><tr>
+          <th style="width:30px">#</th><th style="width:170px">Task Name</th><th style="width:85px">Category</th><th style="width:80px">Assigned</th><th style="width:90px">Progress</th><th style="width:80px">Start</th><th style="width:45px">Days</th><th style="width:70px">Depends</th><th style="width:65px">Actions</th>
+        </tr></thead>
+        <tbody id="taskTableBody"></tbody>
+      </table>
+    </div>
+    <div class="gantt-chart-wrapper">
+      <div class="gantt-top-scroll" id="ganttTopScroll"><div class="gantt-top-scroll-inner" id="ganttTopScrollInner"></div></div>
+      <div class="gantt-chart" id="ganttChart">
+        <div class="gantt-header" id="ganttHeader"></div>
+        <div class="gantt-body" id="ganttBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="highLevelView" class="hidden">
+  <div class="hl-container" id="hlContainer"></div>
+</div>
+
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <h2 id="taskModalTitle">Add Task</h2>
+    <div class="form-grid">
+      <div class="form-group full"><label>Task Name</label><input type="text" id="fTaskName" placeholder="e.g. Design wireframes"></div>
+      <div class="form-group"><label>Category</label><select id="fCategory"><option value="Planning">Planning</option><option value="Design">Design</option><option value="Development">Development</option><option value="Testing">Testing</option><option value="Deployment">Deployment</option><option value="Management">Management</option><option value="Other">Other</option></select></div>
+      <div class="form-group"><label>Assigned To</label><input type="text" id="fAssigned" placeholder="e.g. Dan"></div>
+      <div class="form-group"><label>Start Date</label><input type="date" id="fStartDate"></div>
+      <div class="form-group"><label>Duration (Days)</label><input type="number" id="fDuration" min="1" value="5"></div>
+      <div class="form-group"><label>Progress (%)</label><input type="number" id="fProgress" min="0" max="100" value="0"></div>
+      <div class="form-group"><label>Depends On (Task #)</label><input type="text" id="fDependency" placeholder="e.g. 1 or 1,3"></div>
+      <div class="form-group"><label>Is Milestone?</label><select id="fMilestone"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Colour</label><input type="color" id="fColor" value="#6CC5C0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeTaskModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="projectModal">
+  <div class="modal">
+    <h2>New Project</h2>
+    <div class="form-grid">
+      <div class="form-group full"><label>Project Name</label><input type="text" id="fProjectName" placeholder="e.g. Website Redesign"></div>
+      <div class="form-group"><label>Project Colour</label><input type="color" id="fProjectColor" value="#6CC5C0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeProjectModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Create Project</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'sesg_gantt_data';
+const DATA_VERSION = 3;
+const PAGE_SOURCE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+const EMBEDDED_DATA = null; /* __SHAREABLE_DATA_MARKER__ */
+let data = loadData();
+let currentProjectId = null;
+let editingTaskId = null;
+const DAY_WIDTH = 32;
+
+const CATEGORY_COLORS = {
+  Planning:'#FBBF24', Design:'#F472B6', Development:'#34D399',
+  Testing:'#F87171', Deployment:'#A78BFA', Management:'#F472B6', Other:'#8899A6',
+  Software:'#5EAED5', RFIs:'#FB923C', Report:'#34D399',
+  'Set Up':'#6CC5C0', 'Risk Register':'#FB923C', Workshop:'#A78BFA',
+  'e-Learning':'#38BDF8', Screening:'#FB923C', Statement:'#F87171'
+};
+
+function loadData() {
+  let stored = null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d.version === DATA_VERSION) stored = d;
+    }
+  } catch(e) {}
+  // If this is a shared file with embedded data, check if it's a newer share
+  if (EMBEDDED_DATA && EMBEDDED_DATA.version === DATA_VERSION) {
+    if (!stored || stored.sharedAt !== EMBEDDED_DATA.sharedAt) {
+      return JSON.parse(JSON.stringify(EMBEDDED_DATA));
+    }
+  }
+  if (stored) return stored;
+  return { version: DATA_VERSION, projects: [] };
+}
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function genId() { return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function addDaysStr(s,n) { const d=new Date(s); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0]; }
+function parseDate(s) { return new Date(s+'T00:00:00'); }
+function dateDiffDays(a,b) { return Math.round((b-a)/86400000); }
+function formatDate(d) { return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+function formatDateFull(d) { return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+
+// Date helper: "5/01/2026" -> "2026-01-05"
+function D(dmy) { const p=dmy.split('/'); return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'); }
+// Task helper
+function T(name,cat,assigned,progress,start,days,isMilestone,color) {
+  return {id:genId(),name,category:cat,assigned,start,days:days||1,progress,dependencies:[],isMilestone:!!isMilestone,color};
+}
+
+// ══════════════════════════════════════
+// INIT WITH REAL DATA
+// ══════════════════════════════════════
+function init() {
+  if (data.projects.length === 0) {
+    const t='#6CC5C0',m='#A78BFA',g='#34D399',sb='#5EAED5',am='#FBBF24',pk='#F472B6',cr='#F87171',td='#4DA8A3';
+    // All tasks merged into one project: GreenPorts Toolkit
+    const allTasks = [
+      // ── Inception Report ──
+      T('Draft webinar schedule','Planning','SESG',100,D('5/01/2026'),1,false,t),
+      T('Finalise webinar schedule','Management','ADB',100,D('9/01/2026'),1,true,m),
+      T('Finalise Aspect areas','Management','ADB',100,D('9/01/2026'),1,true,m),
+      T('Draft Concept Flow','Planning','SESG',100,D('5/01/2026'),8,false,t),
+      T('Finalise Concept Flow','Management','ADB',100,D('14/01/2026'),1,true,m),
+      T('Prepare Research Templates','Planning','SESG',100,D('15/01/2026'),2,false,t),
+      T('Prepare stakeholder mapping & engagement plan','Planning','SESG',100,D('15/01/2026'),2,false,t),
+      T('Draft Report QA Review','Testing','M&N',100,D('29/01/2026'),1,false,cr),
+      T('Report Submission','Management','SESG',0,D('2/02/2026'),1,true,m),
+      // ── Green Port Approaches Report ──
+      T('Research: green port certification schemes','Planning','SESG',50,D('9/02/2026'),3,false,g),
+      T('Research: green port risk oversight & standards','Planning','SESG',0,D('16/02/2026'),3,false,g),
+      T('Research: green port financing','Planning','SESG',0,D('23/02/2026'),3,false,g),
+      T('Research: green port dev - planning','Planning','M&N',0,D('16/02/2026'),3,false,td),
+      T('Research: green port dev - engineering design','Planning','M&N',0,D('23/02/2026'),3,false,td),
+      T('Research: green port dev - materials selection','Planning','M&N',0,D('2/03/2026'),3,false,td),
+      T('Research: green port dev - low emission tech','Planning','M&N',0,D('9/03/2026'),3,false,td),
+      T('Research: green port dev - digital technology','Planning','M&N',0,D('16/03/2026'),3,false,td),
+      T('Research: green port dev - climate adaptation','Planning','M&N',0,D('23/03/2026'),3,false,td),
+      T('Research: green port ops - maintenance','Planning','SESG',0,D('2/03/2026'),3,false,g),
+      T('Research: green port ops - materials handling','Planning','SESG',0,D('9/03/2026'),3,false,g),
+      T('Research: resource use & waste management','Planning','SESG',0,D('9/03/2026'),3,false,g),
+      T('Research: green port ops - biosecurity & biodiversity','Planning','SESG',0,D('16/03/2026'),3,false,g),
+      T('Research: green port ops - social licence','Planning','SESG',0,D('23/03/2026'),3,false,g),
+      T('Research: workforce standards & engagement','Planning','SESG',0,D('23/03/2026'),3,false,g),
+      T('Research: green port ops - decommissioning','Planning','SESG',0,D('30/03/2026'),3,false,g),
+      T('Report compilation and drafting','Development','SESG',0,D('6/04/2026'),10,false,g),
+      T('Draft Report - QA Review','Testing','M&N',0,D('23/04/2026'),1,false,cr),
+      T('Draft Report','Management','SESG',0,D('27/04/2026'),1,true,m),
+      T('Draft Report Review & Feedback','Planning','ADB',0,D('27/04/2026'),8,false,sb),
+      T('Respond to ADB Feedback/Update Report','Development','Both',0,D('5/05/2026'),2,false,g),
+      T('Briefing Note Drafting','Development','SESG',0,D('27/04/2026'),2,false,g),
+      T('Briefing Note - QA Review','Testing','M&N',0,D('5/05/2026'),2,false,cr),
+      T('Final Report','Management','SESG',0,D('11/05/2026'),1,true,m),
+      // ── Guidance Note & Toolkit ──
+      T('Toolkit Development','Development','SESG',0,D('2/02/2026'),40,false,sb),
+      T('Toolkit population','Development','SESG',0,D('14/03/2026'),10,false,sb),
+      T('Toolkit Testing (SESG)','Testing','SESG',0,D('24/03/2026'),5,false,cr),
+      T('Toolkit Testing (M&N)','Testing','M&N',0,D('29/03/2026'),1,false,cr),
+      T('Guidance Note Drafting','Development','Both',0,D('20/08/2026'),12,false,sb),
+      T('QA Review guidance note','Testing','M&N',0,D('7/09/2026'),1,false,cr),
+      T('Submission Draft Guidance Note & Toolkit','Management','SESG',0,D('14/09/2026'),1,true,m),
+      T('Review Draft Guidance Note & Toolkit','Management','ADB',0,D('14/09/2026'),8,true,m),
+      T('Update Guidance Note & Toolkit','Development','Both',0,D('21/09/2026'),3,false,sb),
+      T('QA Review - Updated Materials','Testing','M&N',0,D('23/09/2026'),1,false,cr),
+      T('Submission Final Guidance Note & Toolkit','Management','SESG',0,D('28/09/2026'),1,true,m),
+      // ── Toolkit Launch & Training ──
+      T('Training package development','Development','Both',0,D('5/10/2026'),5,false,am),
+      T('E-learning module development','Development','SESG',0,D('10/10/2026'),10,false,am),
+      T('Training Delivery','Deployment','SESG',0,D('26/10/2026'),4,false,'#D97706'),
+      T('Completed By','Management','SESG',0,D('30/10/2026'),1,true,m),
+      // ── GreenPort Investment Opportunities ──
+      T('SE Asia Regional Port Landscape Analysis','Planning','Both',0,D('28/10/2026'),8,false,'#A78BFA'),
+      T('Draft report preparation','Development','SESG',0,D('9/11/2026'),12,false,'#A78BFA'),
+      T('QA Review draft report','Testing','M&N',0,D('25/11/2026'),1,false,cr),
+      T('Draft Report Submission','Management','SESG',0,D('4/12/2026'),1,true,m),
+      T('Review Draft Report','Management','ADB',0,D('4/12/2026'),8,true,m),
+      T('Update Draft Report','Development','Both',0,D('14/12/2026'),2,false,'#A78BFA'),
+      T('QA Review - Updated Report','Testing','M&N',0,D('16/12/2026'),1,false,cr),
+      T('Final Report Submission','Management','SESG',0,D('18/12/2026'),1,true,m),
+      // ── Webinars ──
+      T('Webinar #5 Development','Development','SESG',0,D('2/03/2026'),1,false,pk),
+      T('Webinar #5 Delivery','Deployment','SESG',0,D('19/03/2026'),1,true,m),
+      T('Webinar #5 Blog','Other','SESG',0,D('26/03/2026'),1,false,pk),
+      T('Webinar #6 Development','Development','SESG',0,D('30/03/2026'),1,false,pk),
+      T('Webinar #6 Delivery','Deployment','SESG',0,D('16/04/2026'),1,true,m),
+      T('Webinar #6 Blog','Other','SESG',0,D('23/04/2026'),1,false,pk),
+      T('Webinar #7 Development','Development','M&N',0,D('27/04/2026'),1,false,pk),
+      T('Webinar #7 Delivery','Deployment','M&N',0,D('21/05/2026'),1,true,m),
+      T('Webinar #7 Blog','Other','M&N',0,D('28/05/2026'),1,false,pk),
+      T('Webinar #8 Development','Development','M&N',0,D('1/06/2026'),1,false,pk),
+      T('Webinar #8 Delivery','Deployment','M&N',0,D('18/06/2026'),1,true,m),
+      T('Webinar #8 Blog','Other','M&N',0,D('25/06/2026'),1,false,pk),
+      T('Webinar #9 Development','Development','M&N',0,D('29/06/2026'),1,false,pk),
+      T('Webinar #9 Delivery','Deployment','M&N',0,D('16/07/2026'),1,true,m),
+      T('Webinar #9 Blog','Other','M&N',0,D('23/07/2026'),1,false,pk),
+      T('Webinar #10 Development','Development','M&N',0,D('27/07/2026'),1,false,pk),
+      T('Webinar #10 Delivery','Deployment','M&N',0,D('20/08/2026'),1,true,m),
+      T('Webinar #10 Blog','Other','M&N',0,D('27/08/2026'),1,false,pk),
+      T('Webinar #11 Development','Development','M&N',0,D('31/08/2026'),1,false,pk),
+      T('Webinar #11 Delivery','Deployment','M&N',0,D('17/09/2026'),1,true,m),
+      T('Webinar #11 Blog','Other','M&N',0,D('24/09/2026'),1,false,pk),
+      T('Webinar #12 Development','Development','SESG',0,D('28/09/2026'),1,false,pk),
+      T('Webinar #12 Delivery','Deployment','SESG',0,D('15/10/2026'),1,true,m),
+      T('Webinar #12 Blog','Other','SESG',0,D('22/10/2026'),1,false,pk),
+      T('Webinar #13 Development','Development','SESG',0,D('2/11/2026'),1,false,pk),
+      T('Webinar #13 Delivery','Deployment','SESG',0,D('19/11/2026'),1,true,m),
+      T('Webinar #13 Blog','Other','SESG',0,D('26/11/2026'),1,false,pk),
+      T('Webinar #14 Development','Development','SESG',0,D('30/11/2026'),1,false,pk),
+      T('Webinar #14 Delivery','Deployment','SESG',0,D('17/12/2026'),1,true,m),
+      T('Webinar #14 Blog','Other','SESG',0,D('24/12/2026'),1,false,pk),
+      // ── Progress Reports ──
+      T('Progress Report #1','Other','SESG',0,D('2/03/2026'),1,false,cr),
+      T('Progress Report #2','Other','SESG',0,D('6/04/2026'),1,false,cr),
+      T('Progress Report #3','Other','SESG',0,D('4/05/2026'),1,false,cr),
+      T('Progress Report #4','Other','SESG',0,D('1/06/2026'),1,false,cr),
+      T('Progress Report #5','Other','SESG',0,D('6/07/2026'),1,false,cr),
+      T('Progress Report #6','Other','SESG',0,D('3/08/2026'),1,false,cr),
+      T('Progress Report #7','Other','SESG',0,D('7/09/2026'),1,false,cr),
+      T('Progress Report #8','Other','SESG',0,D('5/10/2026'),1,false,cr),
+      T('Progress Report #9','Other','SESG',0,D('2/11/2026'),1,false,cr),
+      T('Progress Report #10','Other','SESG',0,D('7/12/2026'),1,false,cr),
+    ];
+
+    // DBCT Project - Jackie, 236 hours = ~30 working days = 42 calendar days, starts Mon 2 Mar 2026
+    data.projects = [
+      { id:genId(), name:'ADB - GreenPorts Toolkit', color:'#6CC5C0', tasks: allTasks },
+      { id:genId(), name:'DBCT - Climate Scenario Analysis', color:'#38BDF8', tasks:[
+        T('DBCT Project','Development','Jackie',0,D('2/03/2026'),42,false,'#38BDF8'),
+      ]},
+    ];
+    saveData();
+  }
+
+  // ══════════════════════════════════════
+  // SCENIC PROJECTS (add once if not present)
+  // ══════════════════════════════════════
+  // Migrate existing project names to include organisation
+  const nameMap = {'GreenPorts Toolkit':'ADB - GreenPorts Toolkit','DBCT':'DBCT - Climate Scenario Analysis'};
+  let migrated = false;
+  data.projects.forEach(p => { if (nameMap[p.name]) { p.name = nameMap[p.name]; migrated = true; } });
+  if (migrated) saveData();
+
+  if (!data.projects.some(p => p.name.includes('Scenic -'))) {
+    const sw='#5EAED5',rf='#FB923C',rp='#34D399',ds='#F472B6',su='#6CC5C0',ws='#A78BFA',el='#38BDF8',sc='#FB923C',st='#F87171',ml='#A78BFA',gl='#34D399';
+
+    // ── 1. GHG Emissions / KubeNest ──
+    const ghgTasks = [
+      // Software
+      T('Source vessel EFs','Software','Jackie',80,D('13/01/2026'),8,false,sw),
+      T('Rivers Asia','Software','Phil/Huy',75,D('28/02/2026'),1,false,gl),
+      T('Rivers EU','Software','Damir',0,D('28/02/2026'),1,false,gl),
+      T('Oceans','Software','Tom/Kamenko',100,D('28/02/2026'),1,false,gl),
+      T('Source Office EFs','Software','Jackie',50,D('19/01/2026'),5,false,sw),
+      T('Office - Sydney','Software','Scenic',90,D('30/01/2026'),1,false,gl),
+      T('Office - Newcastle','Software','Scenic',100,D('30/01/2026'),1,false,gl),
+      T('Office - Manchester','Software','Scenic',0,D('30/01/2026'),1,false,gl),
+      T('Office - Zug','Software','Scenic',90,D('30/01/2026'),1,false,gl),
+      T('Office - Vancouver','Software','Scenic',100,D('30/01/2026'),1,false,gl),
+      T('Office - Ho Chi Minh City','Software','Scenic',90,D('30/01/2026'),1,false,gl),
+      T('Office - Phnom Penh','Software','Scenic',0,D('30/01/2026'),1,false,gl),
+      T('Office - Malta','Software','Scenic',100,D('30/01/2026'),1,false,gl),
+      T('Office - Miami','Software','Scenic',25,D('30/01/2026'),1,false,gl),
+      T('Office - Rijeka','Software','Scenic',100,D('30/01/2026'),1,false,gl),
+      T('Office - Porto','Software','Scenic',100,D('30/01/2026'),1,false,gl),
+      T('Office - MayFlower Chicago','Software','Scenic',25,D('30/01/2026'),1,false,gl),
+      T('Office - New Zealand','Software','Scenic',50,D('30/01/2026'),1,false,gl),
+      T('Office - Manila','Software','Scenic',25,D('30/01/2026'),1,false,gl),
+      T('Office - Singapore','Software','Scenic',0,D('30/01/2026'),1,false,gl),
+      T('Update Software','Software','Jono',10,D('26/01/2026'),12,false,sw),
+      T('Set up API for Oceans data','Software','Jono',0,D('9/02/2026'),12,false,sw),
+      T('Prepare master data sheet S1 and S2','Software','Jackie',0,D('19/01/2026'),30,false,sw),
+      T('Set up Scenic in system','Software','Dan',0,D('18/02/2026'),3,false,sw),
+      T('Upload master data - S1 and S2','Software','Lachlan',0,D('23/02/2026'),1,true,ml),
+      T('Roll out training for Scenic S1 & S2','Software','Dan',0,D('24/02/2026'),4,false,gl),
+      T('Prepare master data sheet S3','Software','Jackie',0,D('27/02/2026'),3,false,sw),
+      T('Upload master data - S3','Software','Lachlan',0,D('4/03/2026'),1,true,ml),
+      T('Roll out training for Scenic S3','Software','Dan',0,D('9/03/2026'),4,false,gl),
+      // RFIs
+      T('S2 - Office Data - prepare and issue','RFIs','Jackie',100,D('13/01/2026'),1,false,rf),
+      T('S2 - Office Data - respond','RFIs','Scenic',40,D('14/01/2026'),17,false,gl),
+      T('S2 - Other Buildings/Locations - prepare','RFIs','Jackie',0,D('19/01/2026'),1,false,rf),
+      T('S2 - Other Buildings/Locations - respond','RFIs','Scenic',0,D('20/01/2026'),12,false,gl),
+      T('S1 - Ocean Vessels - prepare and issue','RFIs','Jackie',100,D('22/01/2026'),1,false,rf),
+      T('S1 - Ocean Vessels - respond','RFIs','Tom/Kamenko',100,D('22/01/2026'),10,false,gl),
+      T('S1 - River Vessels - prepare and issue','RFIs','Jackie',0,D('22/01/2026'),1,false,rf),
+      T('S1 - River Vessels - respond','RFIs','Damir',0,D('22/01/2026'),10,false,gl),
+      T('S1 - Helicopters/tenders - prepare','RFIs','Jackie',0,D('19/01/2026'),1,false,rf),
+      T('S1 - Helicopters/tenders - respond','RFIs','Tom/Kamenko',0,D('20/01/2026'),12,false,gl),
+      T('S3 - Purchased goods & services - prepare','RFIs','Jackie',0,D('2/02/2026'),1,false,rf),
+      T('S3 - Purchased goods & services - respond','RFIs','Scenic',0,D('3/02/2026'),25,false,gl),
+      T('S3 - Capital goods - prepare','RFIs','Jackie',0,D('2/02/2026'),1,false,rf),
+      T('S3 - Capital goods - respond','RFIs','Scenic',0,D('3/02/2026'),25,false,gl),
+      T('S3 - Waste in operations - prepare','RFIs','Jackie',0,D('2/02/2026'),1,false,rf),
+      T('S3 - Waste in operations - respond','RFIs','Scenic',0,D('3/02/2026'),25,false,gl),
+      T('S3 - Use of sold products - prepare','RFIs','Jackie',0,D('2/02/2026'),1,false,rf),
+      T('S3 - Use of sold products - respond','RFIs','Scenic',0,D('3/02/2026'),25,false,gl),
+      T('S3 - Fuel and energy related activities','RFIs','System',0,D('20/02/2026'),1,false,rf),
+      T('S3 - Upstream transport - prepare','RFIs','Jackie',0,D('2/02/2026'),1,false,rf),
+      T('S3 - Upstream transport - respond','RFIs','Scenic',0,D('3/02/2026'),25,false,gl),
+    ];
+
+    // ── 2. Impact Report ──
+    const irTasks = [
+      // RFIs
+      T('Climate Change - prepare and issue','RFIs','Jackie',50,D('5/01/2026'),2,false,rf),
+      T('Climate Change - respond','RFIs','Scenic',50,D('29/01/2026'),30,false,gl),
+      T('Own Workforce - prepare and issue','RFIs','Jackie',100,D('27/01/2026'),2,false,rf),
+      T('Own Workforce - respond','RFIs','Scenic',0,D('29/01/2026'),30,false,gl),
+      T('Value Chain Workers - prepare and issue','RFIs','Jackie',0,D('27/01/2026'),2,false,rf),
+      T('Value Chain Workers - respond','RFIs','Scenic',0,D('29/01/2026'),30,false,gl),
+      T('Consumers & End Users - prepare and issue','RFIs','Jackie',0,D('27/01/2026'),2,false,rf),
+      T('Consumers & End Users - respond','RFIs','Scenic',0,D('29/01/2026'),30,false,gl),
+      T('Governance - prepare and issue','RFIs','Jackie',0,D('27/01/2026'),2,false,rf),
+      T('Governance - respond','RFIs','Scenic',0,D('29/01/2026'),30,false,gl),
+      T('Identify Case Studies & Owners','RFIs','Jackie/Phil',0,D('27/01/2026'),2,false,rf),
+      T('Provide case study information','RFIs','Scenic',0,D('29/01/2026'),30,false,gl),
+      // Report
+      T('Prepare Report Strawman','Report','Jackie',0,D('9/03/2026'),2,false,rp),
+      T('Confirm structure/layout','Report','Scenic',0,D('11/03/2026'),1,false,rp),
+      T('Build out content','Report','Jackie',0,D('16/03/2026'),21,false,rp),
+      T('Review draft content','Report','Scenic',0,D('6/04/2026'),5,false,gl),
+      T('Update content based on feedback','Report','Jackie',0,D('13/04/2026'),5,false,rp),
+      // Design
+      T('Seek quote from Cordial','Design','Jackie',50,D('17/01/2026'),3,false,ds),
+      T('Provide content to designer','Design','Jackie',0,D('4/05/2026'),1,true,ml),
+      T('Design development','Design','Cordial',0,D('4/05/2026'),14,false,ds),
+      T('Review design','Design','Scenic/SESG',0,D('18/04/2026'),2,false,gl),
+      T('Update and finalise design','Design','Cordial',0,D('20/05/2026'),3,true,ml),
+      T('Publish report on public website','Design','Scenic',0,D('29/05/2026'),1,true,ml),
+    ];
+
+    // ── 3. Climate Risk ──
+    const crTasks = [
+      // Set Up
+      T('Define Business Systems','Set Up','SESG',100,D('22/01/2026'),1,false,su),
+      T('Define Climate Scenarios','Set Up','SESG',100,D('22/01/2026'),1,false,su),
+      T('Structure risk framework','Set Up','SESG',50,D('22/01/2026'),1,false,su),
+      T('Confirm systems, scenarios & risk with client','Set Up','Scenic',0,D('2/02/2026'),1,true,ml),
+      T('Define locations','Set Up','SESG',0,D('3/02/2026'),2,false,su),
+      T('Source IPCC data for locations','Set Up','SESG',50,D('5/02/2026'),5,false,su),
+      T('Update tool with IPCC','Set Up','SESG',0,D('12/02/2026'),5,false,su),
+      T('Prepare Risk Tool - Scenic Specific','Set Up','SESG',0,D('19/02/2026'),5,false,su),
+      // Risk Register Development
+      T('Research risk descriptions - physical','Risk Register','SESG',0,D('2/03/2026'),10,false,rf),
+      T('Client review - physical risks','Risk Register','Scenic',0,D('16/03/2026'),5,false,gl),
+      T('Research risk descriptions - transition','Risk Register','SESG',0,D('23/03/2026'),10,false,rf),
+      T('Client review - transition risks','Risk Register','Scenic',0,D('6/04/2026'),5,false,gl),
+      T('Enter workshop results - vulnerability','Risk Register','SESG',0,D('4/05/2026'),3,false,rf),
+      T('Enter workshop results - controls & opportunities','Risk Register','SESG',0,D('7/05/2026'),3,false,rf),
+      T('Build out opportunities','Risk Register','SESG',0,D('11/05/2026'),5,false,rf),
+      // Workshop
+      T('Identify/confirm stakeholders','Workshop','Scenic/SESG',0,D('2/03/2026'),3,false,ws),
+      T('Set up dates for workshops','Workshop','SESG',0,D('5/03/2026'),2,false,ws),
+      T('Prepare workshop materials - physical','Workshop','SESG',0,D('9/03/2026'),5,false,ws),
+      T('Issue pre-read - physical','Workshop','Scenic',0,D('16/03/2026'),2,false,ws),
+      T('Run workshop - physical','Workshop','SESG',0,D('23/03/2026'),1,true,ml),
+      T('Prepare workshop materials - transition','Workshop','SESG',0,D('30/03/2026'),5,false,ws),
+      T('Issue pre-read - transition','Workshop','Scenic',0,D('6/04/2026'),2,false,ws),
+      T('Run workshop - transition','Workshop','SESG',0,D('13/04/2026'),1,true,ml),
+      T('Prepare & issue opportunities survey','Workshop','SESG',0,D('20/04/2026'),2,false,ws),
+      T('Complete opportunities survey','Workshop','Scenic',0,D('22/04/2026'),14,false,gl),
+      // Report
+      T('Prepare report strawman','Report','SESG',0,D('18/05/2026'),5,false,rp),
+      T('Build out report','Report','SESG',0,D('25/05/2026'),14,false,rp),
+      T('Issue draft report','Report','SESG',0,D('12/06/2026'),1,false,rp),
+      T('Review draft report','Report','Scenic',0,D('15/06/2026'),12,false,gl),
+      T('Update and finalise','Report','SESG',0,D('29/06/2026'),3,true,ml),
+    ];
+
+    // ── 4. Modern Slavery ──
+    const msTasks = [
+      // e-Learning
+      T('Upload users to system','e-Learning','Jackie',100,D('11/11/2025'),1,false,el),
+      T('Users complete training','e-Learning','Scenic',40,D('5/01/2026'),26,false,el),
+      // Screening
+      T('Obtain supplier data','Screening','Scenic',100,D('13/01/2026'),18,false,sc),
+      T('Identify supplier location','Screening','Scenic',100,D('19/01/2026'),12,false,sc),
+      T('Identify/check supplier sector GICs','Screening','Amy',80,D('2/03/2026'),1,false,sc),
+      T('Assess country risk','Screening','Amy',0,D('9/03/2026'),1,false,sc),
+      T('Assess sector risk','Screening','Amy',0,D('16/03/2026'),1,false,sc),
+      T('Draft summary letter report','Screening','Amy',0,D('23/03/2026'),1,false,sc),
+      // Statement
+      T('Check modern slavery regions','Statement','Amy',0,D('6/04/2026'),1,false,st),
+      T('Prepare report strawman','Statement','Amy',0,D('13/04/2026'),1,false,st),
+      T('Prepare and issue RFI','Statement','Amy',0,D('14/04/2026'),1,false,st),
+      T('RFI responses','Statement','Scenic',0,D('15/04/2026'),12,false,gl),
+      T('Draft content','Statement','Amy',0,D('27/04/2026'),3,false,st),
+      T('Internal review','Statement','Scenic',0,D('29/04/2026'),12,false,gl),
+      T('Update and finalise','Statement','Amy',0,D('11/05/2026'),1,false,st),
+      T('Publish report on public website','Statement','Scenic',0,D('31/05/2026'),1,true,ml),
+      T('Upload report to Australia portal','Statement','Scenic',0,D('31/05/2026'),1,true,ml),
+    ];
+
+    data.projects.push(
+      { id:genId(), name:'Scenic - GHG Emissions/KubeNest', color:'#38BDF8', tasks: ghgTasks },
+      { id:genId(), name:'Scenic - Impact Report', color:'#34D399', tasks: irTasks },
+      { id:genId(), name:'Scenic - Climate Risk', color:'#F87171', tasks: crTasks },
+      { id:genId(), name:'Scenic - Modern Slavery', color:'#FBBF24', tasks: msTasks }
+    );
+    saveData();
+  }
+
+  populateProjectSelect();
+  currentProjectId = data.projects[0].id;
+  document.getElementById('projectSelect').value = currentProjectId;
+  renderDetailed();
+}
+
+// ══════════════════════════════════════
+// VIEW SWITCHING
+// ══════════════════════════════════════
+function switchView(v) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
+  document.getElementById('detailedView').classList.toggle('hidden',v!=='detailed');
+  document.getElementById('highLevelView').classList.toggle('hidden',v!=='highlevel');
+  if(v==='highlevel') renderHighLevel();
+  if(v==='detailed') renderDetailed();
+}
+
+// ══════════════════════════════════════
+// PROJECT MANAGEMENT
+// ══════════════════════════════════════
+function populateProjectSelect() {
+  const s=document.getElementById('projectSelect');
+  s.innerHTML=data.projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+}
+function switchProject() { currentProjectId=document.getElementById('projectSelect').value; renderDetailed(); }
+function getCurrentProject() { return data.projects.find(p=>p.id===currentProjectId); }
+
+function openProjectModal() { document.getElementById('fProjectName').value=''; document.getElementById('fProjectColor').value='#6CC5C0'; document.getElementById('projectModal').classList.add('active'); }
+function closeProjectModal() { document.getElementById('projectModal').classList.remove('active'); }
+function saveProject() {
+  const name=document.getElementById('fProjectName').value.trim();
+  if(!name) return alert('Please enter a project name.');
+  const p={id:genId(),name,color:document.getElementById('fProjectColor').value,tasks:[]};
+  data.projects.push(p); saveData(); populateProjectSelect();
+  currentProjectId=p.id; document.getElementById('projectSelect').value=p.id;
+  closeProjectModal(); renderDetailed();
+}
+function deleteProject() {
+  if(data.projects.length<=1) return alert('You must have at least one project.');
+  if(!confirm('Delete this project and all its tasks?')) return;
+  data.projects=data.projects.filter(p=>p.id!==currentProjectId); saveData(); populateProjectSelect();
+  currentProjectId=data.projects[0].id; document.getElementById('projectSelect').value=currentProjectId; renderDetailed();
+}
+
+// ══════════════════════════════════════
+// TASK MODAL
+// ══════════════════════════════════════
+function openTaskModal(taskId) {
+  editingTaskId=taskId||null;
+  document.getElementById('taskModalTitle').textContent=taskId?'Edit Task':'Add Task';
+  document.getElementById('fMilestone').value='false';
+  if(taskId) {
+    const proj=getCurrentProject(), task=proj.tasks.find(t=>t.id===taskId);
+    document.getElementById('fTaskName').value=task.name;
+    document.getElementById('fCategory').value=task.category;
+    document.getElementById('fAssigned').value=task.assigned;
+    document.getElementById('fStartDate').value=task.start;
+    document.getElementById('fDuration').value=task.days;
+    document.getElementById('fProgress').value=task.progress;
+    document.getElementById('fColor').value=task.color||'#6CC5C0';
+    document.getElementById('fMilestone').value=task.isMilestone?'true':'false';
+    const depI=task.dependencies.map(dId=>{const i=proj.tasks.findIndex(t=>t.id===dId);return i>=0?i+1:null}).filter(Boolean);
+    document.getElementById('fDependency').value=depI.join(',');
+  } else {
+    document.getElementById('fTaskName').value='';
+    document.getElementById('fCategory').value='Planning';
+    document.getElementById('fAssigned').value='';
+    document.getElementById('fStartDate').value=todayStr();
+    document.getElementById('fDuration').value=5;
+    document.getElementById('fProgress').value=0;
+    document.getElementById('fColor').value='#6CC5C0';
+    document.getElementById('fDependency').value='';
+  }
+  document.getElementById('taskModal').classList.add('active');
+}
+function openMilestoneModal() {
+  editingTaskId=null;
+  document.getElementById('taskModalTitle').textContent='Add Milestone';
+  document.getElementById('fTaskName').value=''; document.getElementById('fCategory').value='Management';
+  document.getElementById('fAssigned').value=''; document.getElementById('fStartDate').value=todayStr();
+  document.getElementById('fDuration').value=1; document.getElementById('fProgress').value=0;
+  document.getElementById('fColor').value='#A78BFA'; document.getElementById('fMilestone').value='true';
+  document.getElementById('fDependency').value='';
+  document.getElementById('taskModal').classList.add('active');
+}
+function closeTaskModal() { document.getElementById('taskModal').classList.remove('active'); editingTaskId=null; }
+function saveTask() {
+  const proj=getCurrentProject(), name=document.getElementById('fTaskName').value.trim();
+  if(!name) return alert('Please enter a task name.');
+  const depStr=document.getElementById('fDependency').value.trim();
+  let depIds=[];
+  if(depStr) depIds=depStr.split(',').map(s=>{const i=parseInt(s.trim())-1;return(i>=0&&i<proj.tasks.length)?proj.tasks[i].id:null}).filter(Boolean);
+  const obj={id:editingTaskId||genId(),name,category:document.getElementById('fCategory').value,assigned:document.getElementById('fAssigned').value.trim(),start:document.getElementById('fStartDate').value,days:parseInt(document.getElementById('fDuration').value)||1,progress:Math.min(100,Math.max(0,parseInt(document.getElementById('fProgress').value)||0)),dependencies:depIds,isMilestone:document.getElementById('fMilestone').value==='true',color:document.getElementById('fColor').value};
+  if(editingTaskId){const i=proj.tasks.findIndex(t=>t.id===editingTaskId);if(i>=0)proj.tasks[i]=obj;}else proj.tasks.push(obj);
+  saveData(); closeTaskModal(); renderDetailed();
+}
+function deleteTask(id) {
+  if(!confirm('Delete this task?')) return;
+  const proj=getCurrentProject();
+  proj.tasks=proj.tasks.filter(t=>t.id!==id);
+  proj.tasks.forEach(t=>{t.dependencies=t.dependencies.filter(d=>d!==id);});
+  saveData(); renderDetailed();
+}
+
+// ══════════════════════════════════════
+// RENDER DETAILED VIEW
+// ══════════════════════════════════════
+function renderDetailed() {
+  const proj=getCurrentProject();
+  if(!proj) return;
+  const tasks=proj.tasks;
+  if(tasks.length===0){
+    document.getElementById('taskTableBody').innerHTML='<tr><td colspan="9"><div class="empty-state"><p>No tasks yet. Click "+ Add Task" to get started.</p></div></td></tr>';
+    document.getElementById('ganttHeader').innerHTML='';
+    document.getElementById('ganttBody').innerHTML='';
+    return;
+  }
+  let minDate=parseDate(tasks[0].start),maxDate=new Date(minDate);
+  tasks.forEach(t=>{const s=parseDate(t.start),e=new Date(s);e.setDate(e.getDate()+t.days);if(s<minDate)minDate=new Date(s);if(e>maxDate)maxDate=new Date(e);});
+  minDate.setDate(minDate.getDate()-3); maxDate.setDate(maxDate.getDate()+7);
+  const totalDays=dateDiffDays(minDate,maxDate), today=new Date(); today.setHours(0,0,0,0);
+
+  const tbody=document.getElementById('taskTableBody');
+  tbody.innerHTML=tasks.map((t,i)=>{
+    const pc=t.progress>=80?'var(--success)':t.progress>=40?'var(--warning)':'var(--danger)';
+    const di=t.dependencies.map(dId=>{const x=tasks.findIndex(z=>z.id===dId);return x>=0?x+1:'?'}).join(', ');
+    return `<tr class="${t.isMilestone?'milestone-row':''}"><td style="color:var(--text-muted)">${i+1}</td><td><div class="task-name-cell">${t.isMilestone?'<div class="milestone-icon"></div>':''}<span title="${t.name}">${t.name}</span></div></td><td><span class="category-badge" style="background:${(CATEGORY_COLORS[t.category]||'#8899A6')}22;color:${CATEGORY_COLORS[t.category]||'#8899A6'}">${t.category}</span></td><td style="color:var(--text-muted)">${t.assigned||'-'}</td><td><div class="progress-bar-cell"><div class="mini-progress"><div class="mini-progress-fill" style="width:${t.progress}%;background:${pc}"></div></div><span style="font-size:0.7rem;color:${pc}">${t.progress}%</span></div></td><td style="color:var(--text-muted);font-size:0.72rem">${formatDate(parseDate(t.start))}</td><td style="text-align:center">${t.days}</td><td style="color:var(--text-muted);font-size:0.72rem">${di||'-'}</td><td><div class="action-btns"><button class="edit-btn" onclick="openTaskModal('${t.id}')" title="Edit">&#9998;</button><button class="del-btn" onclick="deleteTask('${t.id}')" title="Delete">&#10005;</button></div></td></tr>`;
+  }).join('');
+
+  const header=document.getElementById('ganttHeader');
+  let monthsHTML='',daysHTML='',curMonth='',monthStartIdx=0;
+  for(let i=0;i<totalDays;i++){
+    const d=new Date(minDate);d.setDate(d.getDate()+i);
+    const mo=d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}),dn=d.getDate(),dow=d.getDay();
+    if(mo!==curMonth){if(curMonth)monthsHTML+=`<div class="gantt-month" style="width:${(i-monthStartIdx)*DAY_WIDTH}px">${curMonth}</div>`;curMonth=mo;monthStartIdx=i;}
+    daysHTML+=`<div class="gantt-day ${dow===0||dow===6?'weekend':''} ${d.getTime()===today.getTime()?'today':''}">${dn}</div>`;
+  }
+  monthsHTML+=`<div class="gantt-month" style="width:${(totalDays-monthStartIdx)*DAY_WIDTH}px">${curMonth}</div>`;
+  header.innerHTML=`<div class="gantt-header-months">${monthsHTML}</div><div class="gantt-header-days">${daysHTML}</div>`;
+
+  const body=document.getElementById('ganttBody');
+  body.style.width=(totalDays*DAY_WIDTH)+'px'; body.style.height=(tasks.length*35)+'px';
+  let rowsHTML='',barsHTML='';
+  tasks.forEach((t,i)=>{
+    let bg='';for(let d=0;d<totalDays;d++){const dt=new Date(minDate);dt.setDate(dt.getDate()+d);const dow=dt.getDay();bg+=`<div class="gantt-row-bg-cell ${dow===0||dow===6?'weekend':''}"></div>`;}
+    rowsHTML+=`<div class="gantt-row"><div class="gantt-row-bg">${bg}</div></div>`;
+    const sd=parseDate(t.start),off=dateDiffDays(minDate,sd),l=off*DAY_WIDTH,w=t.days*DAY_WIDTH,tp=i*35+6;
+    if(t.isMilestone) barsHTML+=`<div class="gantt-milestone-marker" style="left:${l+DAY_WIDTH/2-7}px;top:${tp+4}px" title="${t.name} (${formatDate(sd)})" onclick="openTaskModal('${t.id}')"></div>`;
+    else barsHTML+=`<div class="gantt-bar" style="left:${l}px;top:${tp}px;width:${w}px;background:${t.color||'#6CC5C0'}" title="${t.name}: ${t.progress}% (${t.days}d)" onclick="openTaskModal('${t.id}')"><div class="gantt-bar-progress" style="width:${t.progress}%"></div><span class="gantt-bar-label">${t.name}</span></div>`;
+  });
+  const tOff=dateDiffDays(minDate,today);
+  if(tOff>=0&&tOff<totalDays) barsHTML+=`<div class="today-line" style="left:${tOff*DAY_WIDTH+DAY_WIDTH/2}px;height:${tasks.length*35}px"></div>`;
+
+  let svgL='';
+  tasks.forEach((t,i)=>{t.dependencies.forEach(depId=>{
+    const di=tasks.findIndex(x=>x.id===depId);if(di<0)return;
+    const dt=tasks[di],de=parseDate(dt.start);de.setDate(de.getDate()+dt.days);
+    const x1=dateDiffDays(minDate,de)*DAY_WIDTH,y1=di*35+17,x2=dateDiffDays(minDate,parseDate(t.start))*DAY_WIDTH,y2=i*35+17,mx=x1+(x2-x1)/2;
+    svgL+=`<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="rgba(108,197,192,0.4)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ah)"/>`;
+  });});
+  const svgW=totalDays*DAY_WIDTH,svgH=tasks.length*35;
+  const svg=svgL?`<svg class="dependency-svg" width="${svgW}" height="${svgH}"><defs><marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="rgba(108,197,192,0.5)"/></marker></defs>${svgL}</svg>`:'';
+  body.innerHTML=rowsHTML+barsHTML+svg;
+
+  const tbl=document.querySelector('.task-table'),cht=document.getElementById('ganttChart');
+  const topScroll=document.getElementById('ganttTopScroll');
+  const topScrollInner=document.getElementById('ganttTopScrollInner');
+  // Set top scrollbar width to match gantt content
+  topScrollInner.style.width=(totalDays*DAY_WIDTH)+'px';
+  // Sync all scrolls
+  let syncing=false;
+  tbl.onscroll=()=>{if(!syncing){syncing=true;cht.scrollTop=tbl.scrollTop;syncing=false;}};
+  cht.onscroll=()=>{if(!syncing){syncing=true;tbl.scrollTop=cht.scrollTop;topScroll.scrollLeft=cht.scrollLeft;syncing=false;}};
+  topScroll.onscroll=()=>{if(!syncing){syncing=true;cht.scrollLeft=topScroll.scrollLeft;syncing=false;}};
+}
+
+// ══════════════════════════════════════
+// RENDER HIGH LEVEL - CONSOLIDATED VIEW
+// ══════════════════════════════════════
+function renderHighLevel() {
+  const container=document.getElementById('hlContainer');
+  if(!data.projects.length){container.innerHTML='<div class="empty-state"><p>No projects yet.</p></div>';return;}
+
+  // Global date range
+  let gMin=null,gMax=null;
+  data.projects.forEach(p=>p.tasks.forEach(t=>{
+    const s=parseDate(t.start),e=new Date(s);e.setDate(e.getDate()+t.days);
+    if(!gMin||s<gMin)gMin=new Date(s);if(!gMax||e>gMax)gMax=new Date(e);
+  }));
+  if(!gMin){container.innerHTML='<div class="empty-state"><p>No tasks in any project.</p></div>';return;}
+  gMin.setDate(gMin.getDate()-7); gMax.setDate(gMax.getDate()+10);
+  const totalSpan=dateDiffDays(gMin,gMax);
+
+  const HL_PPD=6;
+  const trackWidthPx=totalSpan*HL_PPD;
+
+  // Build months
+  let months=[];
+  let c=new Date(gMin);
+  while(c<gMax){const ms=new Date(c),me=new Date(c.getFullYear(),c.getMonth()+1,1),end=me>gMax?gMax:me;
+    months.push({label:ms.toLocaleDateString('en-GB',{month:'short',year:'numeric'}),px:dateDiffDays(ms,end)*HL_PPD});c=me;}
+
+  // Build weeks
+  let weeks=[];
+  let wc=new Date(gMin);while(wc.getDay()!==1)wc.setDate(wc.getDate()+1);
+  while(wc<gMax){const we=new Date(wc);we.setDate(we.getDate()+7);const a=we>gMax?gMax:we;
+    weeks.push({label:wc.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),px:dateDiffDays(wc,a)*HL_PPD});wc=we;}
+
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayPx=dateDiffDays(gMin,today)*HL_PPD;
+  const showToday=todayPx>0&&todayPx<trackWidthPx;
+
+  // Build left panel (project info)
+  let leftHTML='<div class="hl-info-header"><div class="hl-info-header-label">Project</div><div class="hl-info-header-pct">%</div></div>';
+  leftHTML+='<div class="hl-info-body" id="hlInfoBody">';
+
+  // Build right panel
+  let monthsHTML=months.map(m=>`<div class="hl-tl-month" style="width:${m.px}px">${m.label}</div>`).join('');
+  let weeksHTML=weeks.map(w=>`<div class="hl-tl-week" style="width:${w.px}px">${w.label}</div>`).join('');
+  let rightHeaderHTML=`<div class="hl-timeline-header" style="width:${trackWidthPx}px"><div class="hl-tl-months">${monthsHTML}</div><div class="hl-tl-weeks">${weeksHTML}</div></div>`;
+  let tracksHTML='';
+
+  data.projects.forEach(p=>{
+    if(!p.tasks.length)return;
+    let pMin=null,pMax=null;
+    p.tasks.forEach(t=>{const s=parseDate(t.start),e=new Date(s);e.setDate(e.getDate()+t.days);
+      if(!pMin||s<pMin)pMin=new Date(s);if(!pMax||e>pMax)pMax=new Date(e);});
+    const totalProg=p.tasks.reduce((s,t)=>s+t.progress,0);
+    const avgProg=Math.round(totalProg/p.tasks.length);
+    const taskCount=p.tasks.length;
+    const msCount=p.tasks.filter(t=>t.isMilestone).length;
+    const barLeftPx=dateDiffDays(gMin,pMin)*HL_PPD;
+    const barWidthPx=dateDiffDays(pMin,pMax)*HL_PPD;
+    const progWidthPx=Math.round(avgProg/100*barWidthPx);
+    const progColor=avgProg>=80?'var(--success)':avgProg>=40?'var(--warning)':'var(--danger)';
+
+    // Left panel row
+    leftHTML+=`<div class="hl-info-row" onclick="currentProjectId='${p.id}';document.getElementById('projectSelect').value='${p.id}';switchView('detailed')">
+      <div class="hl-proj-info">
+        <div class="hl-proj-name"><div class="hl-proj-dot" style="background:${p.color}"></div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span></div>
+        <div class="hl-proj-meta">${taskCount} tasks &middot; ${msCount} milestones &middot; ${formatDate(pMin)} - ${formatDate(pMax)}</div>
+      </div>
+      <div class="hl-proj-pct-cell" style="color:${progColor}">${avgProg}%</div>
+    </div>`;
+
+    // Right panel track
+    const milestones=p.tasks.filter(t=>t.isMilestone).map(t=>{
+      const ms=parseDate(t.start);
+      const msPx=dateDiffDays(gMin,ms)*HL_PPD;
+      return `<div class="hl-proj-ms" title="${t.name} - ${formatDateFull(ms)}" style="left:${msPx-5}px"></div>`;
+    }).join('');
+
+    tracksHTML+=`<div class="hl-track-row">
+      <div class="hl-proj-bar-bg" style="left:${barLeftPx}px;width:${barWidthPx}px"></div>
+      <div class="hl-proj-bar-fill" style="left:${barLeftPx}px;width:${progWidthPx}px;background:${p.color}"></div>
+      ${milestones}
+      ${showToday?`<div class="hl-proj-today" style="left:${todayPx}px"></div>`:''}
+    </div>`;
+  });
+
+  leftHTML+='</div>'; // close hl-info-body
+
+  // Assemble
+  container.innerHTML=`
+    <div class="hl-wrapper">
+      <div class="hl-info-panel" id="hlInfoPanel">${leftHTML}</div>
+      <div class="hl-chart-area">
+        <div class="hl-top-scroll" id="hlTopScroll"><div class="hl-top-scroll-inner" style="width:${trackWidthPx}px"></div></div>
+        <div class="hl-chart" id="hlChart">
+          ${rightHeaderHTML}
+          <div class="hl-tracks" style="width:${trackWidthPx}px">${tracksHTML}</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Sync scrolls (mirrors detailed view pattern)
+  const hlTop=document.getElementById('hlTopScroll');
+  const hlChart=document.getElementById('hlChart');
+  const hlInfo=document.getElementById('hlInfoBody');
+  let syncing=false;
+  hlTop.onscroll=()=>{if(!syncing){syncing=true;hlChart.scrollLeft=hlTop.scrollLeft;syncing=false;}};
+  hlChart.onscroll=()=>{if(!syncing){syncing=true;hlTop.scrollLeft=hlChart.scrollLeft;hlInfo.scrollTop=hlChart.scrollTop;syncing=false;}};
+  hlInfo.onscroll=()=>{if(!syncing){syncing=true;hlChart.scrollTop=hlInfo.scrollTop;syncing=false;}};
+}
+
+// ══════════════════════════════════════
+// IMPORT / EXPORT
+// ══════════════════════════════════════
+function exportAllJSON() {
+  const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='SESG_Gantt_Data_'+todayStr()+'.json';a.click();
+}
+function importJSON(ev) {
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=function(e){try{const d=JSON.parse(e.target.result);
+    if(d.projects&&Array.isArray(d.projects)){if(confirm('This will replace all current data. Continue?')){data=d;data.version=DATA_VERSION;saveData();populateProjectSelect();currentProjectId=data.projects[0]?.id;if(currentProjectId)document.getElementById('projectSelect').value=currentProjectId;renderDetailed();}}
+    else alert('Invalid file format.');}catch(err){alert('Error: '+err.message);}};
+  r.readAsText(f);ev.target.value='';
+}
+function exportCSV() {
+  const proj=getCurrentProject();if(!proj)return;
+  let csv='Task #,Task Name,Category,Assigned To,Progress %,Start Date,Days,Dependencies,Milestone\n';
+  proj.tasks.forEach((t,i)=>{
+    const deps=t.dependencies.map(dId=>{const x=proj.tasks.findIndex(z=>z.id===dId);return x>=0?x+1:''}).join(';');
+    csv+=`${i+1},"${t.name}","${t.category}","${t.assigned}",${t.progress},${t.start},${t.days},"${deps}",${t.isMilestone}\n`;
+  });
+  const b=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=proj.name.replace(/\s+/g,'_')+'_Gantt_'+todayStr()+'.csv';a.click();
+}
+
+async function downloadShareable() {
+  const shareData = JSON.parse(JSON.stringify(data));
+  shareData.sharedAt = new Date().toISOString();
+  const dataStr = JSON.stringify(shareData);
+  const marker = '/* __SHAREABLE_DATA_MARKER__ */';
+  const html = PAGE_SOURCE.replace(
+    'const EMBEDDED_DATA = null; ' + marker,
+    'const EMBEDDED_DATA = ' + dataStr + '; ' + marker
+  );
+  const blob = new Blob([html], {type: 'text/html'});
+
+  // Try modern Save As dialog so user can save directly back to shared drive
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'ProjectGantt.html',
+        types: [{ description: 'HTML File', accept: { 'text/html': ['.html'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      alert('Saved! Your team can now open this file and see all your data. They can interact with it too — any changes they make stay in their own browser.');
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return; // User cancelled
+    }
+  }
+  // Fallback for older browsers
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ProjectGantt.html';
+  a.click();
+  alert('File downloaded to your Downloads folder.\n\nTo share with your team:\n1. Go to your Downloads folder\n2. Copy "ProjectGantt.html"\n3. Replace the old file on the shared drive\n\nYour team can then just open it and see everything!');
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTaskModal();closeProjectModal();}});
+document.getElementById('taskModal').addEventListener('click',e=>{if(e.target===document.getElementById('taskModal'))closeTaskModal();});
+document.getElementById('projectModal').addEventListener('click',e=>{if(e.target===document.getElementById('projectModal'))closeProjectModal();});
+
+init();
+</script>
+</body>
+</html>
