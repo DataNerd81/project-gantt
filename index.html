@@ -414,7 +414,7 @@ function recalcParent(tasks, parentId) {
     totalDays += c.days;
   });
   parent.start = minStart.toISOString().split('T')[0];
-  parent.days = Math.max(1, dateDiffDays(minStart, maxEnd));
+  parent.days = Math.max(1, totalDays);
   parent.progress = totalDays > 0 ? Math.round(totalWeightedProgress / totalDays) : 0;
 }
 
