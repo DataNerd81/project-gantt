@@ -34,6 +34,20 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
 
+  /* ── Password Gate ── */
+  .auth-gate { position:fixed; inset:0; z-index:9999; background:var(--bg); display:flex; align-items:center; justify-content:center; }
+  .auth-gate.hidden { display:none; }
+  .auth-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:48px 40px; text-align:center; max-width:380px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+  .auth-box img { height:48px; margin-bottom:16px; }
+  .auth-box h2 { color:var(--sesg-teal); font-size:1.2rem; margin-bottom:6px; }
+  .auth-box p { color:var(--text-muted); font-size:0.85rem; margin-bottom:24px; }
+  .auth-box input { width:100%; padding:12px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:0.95rem; margin-bottom:12px; }
+  .auth-box input:focus { outline:none; border-color:var(--sesg-teal); box-shadow:0 0 0 2px var(--sesg-teal-glow); }
+  .auth-box .auth-btn { width:100%; padding:12px; border-radius:8px; border:none; background:var(--sesg-teal); color:var(--sesg-black); font-weight:600; font-size:0.95rem; cursor:pointer; transition:background 0.2s; }
+  .auth-box .auth-btn:hover { background:var(--sesg-teal-dark); }
+  .auth-error { color:var(--danger); font-size:0.8rem; margin-top:8px; display:none; }
+  .app-content.locked { display:none; }
+
   /* ── Header ── */
   .header { background:linear-gradient(135deg,var(--sesg-black),var(--bg)); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
   .header-brand { display:flex; align-items:center; gap:14px; }
@@ -215,6 +229,21 @@
 </head>
 <body>
 
+<!-- Password Gate -->
+<div class="auth-gate" id="authGate">
+  <div class="auth-box">
+    <img src="sesg-logo.svg" alt="SESG">
+    <h2>SESG Project Gantt</h2>
+    <p>Enter the password to continue</p>
+    <input type="password" id="authPassword" placeholder="Password" autocomplete="off">
+    <button class="auth-btn" id="authBtn" onclick="checkPassword()">Sign In</button>
+    <div class="auth-error" id="authError">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- App Content (hidden until authenticated) -->
+<div class="app-content locked" id="appContent">
+
 <div class="header">
   <div class="header-brand">
     <img src="sesg-logo.svg" alt="SESG">
@@ -306,6 +335,47 @@
     </div>
   </div>
 </div>
+
+</div><!-- /app-content -->
+
+<script>
+/* ── Password Gate Logic ── */
+const AUTH_HASH = 'c458fdcab6a0bc777f0a1b9ccf4e188282ba35d7e8c0b5d3204ee868d8c133dc';
+const AUTH_KEY = 'sesg_gantt_auth';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkPassword() {
+  const input = document.getElementById('authPassword').value;
+  const hash = await sha256(input);
+  if (hash === AUTH_HASH) {
+    sessionStorage.setItem(AUTH_KEY, 'true');
+    unlockApp();
+  } else {
+    document.getElementById('authError').style.display = 'block';
+    document.getElementById('authPassword').value = '';
+    document.getElementById('authPassword').focus();
+  }
+}
+
+function unlockApp() {
+  document.getElementById('authGate').classList.add('hidden');
+  document.getElementById('appContent').classList.remove('locked');
+}
+
+// Auto-unlock if already authenticated this session
+if (sessionStorage.getItem(AUTH_KEY) === 'true') {
+  unlockApp();
+}
+
+// Allow Enter key to submit password
+document.getElementById('authPassword').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+</script>
 
 <script>
 const STORAGE_KEY = 'sesg_gantt_data';
