@@ -100,6 +100,23 @@ export function ImportModal({
             CSV or already exist in the project.
           </p>
 
+          <button
+            type="button"
+            onClick={() => {
+              const headers = "Task Name,Category,Assigned To,Progress %,Start Date,Days,Milestone,Color,Parent Task";
+              const blob = new Blob([headers + "\n"], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "gantt_import_template.csv";
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="text-xs text-[#6CC5C0] hover:underline"
+          >
+            Download blank CSV template
+          </button>
+
           <div className="rounded border border-dashed border-[#3A4149] p-4 text-center">
             <input
               ref={fileRef}
