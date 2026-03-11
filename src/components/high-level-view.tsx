@@ -60,9 +60,9 @@ export function HighLevelView({ projects, onSelectProject }: HighLevelViewProps)
   const showToday = todayPx > 0 && todayPx < trackWidth;
 
   return (
-    <div className="flex gap-0 overflow-hidden rounded-lg border border-[#3A4149]">
+    <div className="flex flex-col gap-0 overflow-hidden rounded-lg border border-[#3A4149] md:flex-row">
       {/* Left panel */}
-      <div className="w-[300px] flex-none border-r border-[#3A4149]">
+      <div className="w-full flex-none border-b border-[#3A4149] md:w-[300px] md:border-b-0 md:border-r">
         <div className="flex border-b border-[#3A4149] bg-[#1A1D21] px-4 py-2 text-xs text-[#8899A6]">
           <span className="flex-1">Project</span>
           <span className="w-12 text-right">%</span>

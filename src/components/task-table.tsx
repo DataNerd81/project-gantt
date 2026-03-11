@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef } from "react";
 import { DisplayItem } from "@/lib/types";
 import { CATEGORY_COLORS } from "@/lib/constants";
 import { formatDate, parseDate } from "@/lib/gantt-utils";
@@ -11,6 +12,7 @@ interface TaskTableProps {
   onEdit: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onToggleCollapse: (taskId: string) => void;
+  onReorder?: (taskId: string, newIndex: number) => void;
 }
 
 export function TaskTable({
@@ -19,8 +21,11 @@ export function TaskTable({
   onEdit,
   onDelete,
   onToggleCollapse,
+  onReorder,
 }: TaskTableProps) {
   const visibleItems = displayItems.filter((item) => item.visible);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const dragItemId = useRef<string | null>(null);
 
   if (visibleItems.length === 0) {
     return (
@@ -30,24 +35,56 @@ export function TaskTable({
     );
   }
 
+  function handleDragStart(e: React.DragEvent, taskId: string) {
+    dragItemId.current = taskId;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", taskId);
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "0.5";
+    }
+  }
+
+  function handleDragEnd(e: React.DragEvent) {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "1";
+    }
+    dragItemId.current = null;
+    setDragOverIdx(null);
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverIdx(idx);
+  }
+
+  function handleDrop(e: React.DragEvent, dropIdx: number) {
+    e.preventDefault();
+    setDragOverIdx(null);
+    const taskId = dragItemId.current;
+    if (!taskId || !onReorder) return;
+    onReorder(taskId, dropIdx);
+  }
+
   return (
     <div className="overflow-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#3A4149] text-left text-xs text-[#8899A6]">
-            <th className="w-12 px-2 py-2">#</th>
-            <th className="min-w-[180px] px-2 py-2">Task</th>
-            <th className="px-2 py-2">Category</th>
-            <th className="px-2 py-2">Assigned</th>
-            <th className="px-2 py-2">Progress</th>
-            <th className="px-2 py-2">Start</th>
-            <th className="w-14 px-2 py-2 text-center">Days</th>
-            <th className="px-2 py-2">Deps</th>
-            <th className="w-20 px-2 py-2"></th>
+            {onReorder && <th className="w-8 px-1 py-2"></th>}
+            <th className="w-10 px-1 py-2 md:w-12 md:px-2">#</th>
+            <th className="min-w-[120px] px-1 py-2 md:min-w-[180px] md:px-2">Task</th>
+            <th className="hidden px-2 py-2 sm:table-cell">Category</th>
+            <th className="hidden px-2 py-2 md:table-cell">Assigned</th>
+            <th className="px-1 py-2 md:px-2">Progress</th>
+            <th className="hidden px-2 py-2 sm:table-cell">Start</th>
+            <th className="w-12 px-1 py-2 text-center md:w-14 md:px-2">Days</th>
+            <th className="hidden px-2 py-2 lg:table-cell">Deps</th>
+            <th className="w-16 px-1 py-2 md:w-20 md:px-2"></th>
           </tr>
         </thead>
         <tbody>
-          {visibleItems.map((item) => {
+          {visibleItems.map((item, idx) => {
             const t = item.task;
             const progressColor =
               t.progress >= 80
@@ -59,20 +96,36 @@ export function TaskTable({
               .map((dId) => idToNumber[dId] || "?")
               .join(", ");
 
+            const isDragOver = dragOverIdx === idx;
+
             return (
               <tr
                 key={t.id}
+                draggable={!!onReorder}
+                onDragStart={(e) => handleDragStart(e, t.id)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDrop={(e) => handleDrop(e, idx)}
                 className={`border-b border-[#3A4149]/50 hover:bg-[#262B30] ${
                   item.isParent ? "bg-[#1A1D21] font-semibold" : ""
-                } ${item.depth > 0 ? "text-[#8899A6]" : ""}`}
+                } ${item.depth > 0 ? "text-[#8899A6]" : ""} ${
+                  isDragOver ? "!border-t-2 !border-t-[#6CC5C0]" : ""
+                }`}
               >
-                <td className="px-2 py-2 text-[#8899A6]">
+                {onReorder && (
+                  <td className="px-1 py-2">
+                    <span className="cursor-grab text-[#8899A6]/50 hover:text-[#8899A6] active:cursor-grabbing">
+                      &#8942;&#8942;
+                    </span>
+                  </td>
+                )}
+                <td className="px-1 py-2 text-[#8899A6] md:px-2">
                   {item.displayNumber}
                 </td>
-                <td className="px-2 py-2">
+                <td className="px-1 py-2 md:px-2">
                   <div className="flex items-center gap-1.5">
                     {item.depth > 0 && (
-                      <span className="ml-4 text-[#3A4149]">&#8627;</span>
+                      <span className="ml-2 text-[#3A4149] md:ml-4">&#8627;</span>
                     )}
                     {item.isParent && (
                       <button
@@ -90,7 +143,7 @@ export function TaskTable({
                     </span>
                   </div>
                 </td>
-                <td className="px-2 py-2">
+                <td className="hidden px-2 py-2 sm:table-cell">
                   <Badge
                     variant="outline"
                     className="border-0 text-xs"
@@ -102,12 +155,12 @@ export function TaskTable({
                     {t.category}
                   </Badge>
                 </td>
-                <td className="px-2 py-2 text-[#8899A6]">
+                <td className="hidden px-2 py-2 text-[#8899A6] md:table-cell">
                   {t.assigned || "-"}
                 </td>
-                <td className="px-2 py-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#3A4149]">
+                <td className="px-1 py-2 md:px-2">
+                  <div className="flex items-center gap-1 md:gap-2">
+                    <div className="h-1.5 w-10 overflow-hidden rounded-full bg-[#3A4149] md:w-16">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{
@@ -124,14 +177,14 @@ export function TaskTable({
                     </span>
                   </div>
                 </td>
-                <td className="px-2 py-2 text-xs text-[#8899A6]">
+                <td className="hidden px-2 py-2 text-xs text-[#8899A6] sm:table-cell">
                   {formatDate(parseDate(t.startDate))}
                 </td>
-                <td className="px-2 py-2 text-center">{t.days}</td>
-                <td className="px-2 py-2 text-xs text-[#8899A6]">
+                <td className="px-1 py-2 text-center md:px-2">{t.days}</td>
+                <td className="hidden px-2 py-2 text-xs text-[#8899A6] lg:table-cell">
                   {depDisplay || "-"}
                 </td>
-                <td className="px-2 py-2">
+                <td className="px-1 py-2 md:px-2">
                   <div className="flex gap-1">
                     <button
                       onClick={() => onEdit(t.id)}

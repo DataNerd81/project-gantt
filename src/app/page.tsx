@@ -188,6 +188,44 @@ export default function Home() {
     await loadProjects();
   }
 
+  async function handleReorder(taskId: string, newIndex: number) {
+    const visibleItems = displayList.filter((item) => item.visible);
+    const oldIndex = visibleItems.findIndex((item) => item.task.id === taskId);
+    if (oldIndex === -1 || oldIndex === newIndex) return;
+
+    // Build the new order
+    const reordered = [...visibleItems];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+
+    // Send updates to the API
+    const updates = reordered.map((item, i) => ({
+      id: item.task.id,
+      sortOrder: i,
+      parentId: item.task.parentId,
+    }));
+
+    // Also include any hidden (collapsed) items, keeping their relative order
+    const hiddenItems = displayList.filter((item) => !item.visible);
+    for (const hidden of hiddenItems) {
+      const parentIdx = updates.findIndex((u) => u.id === hidden.task.parentId);
+      if (parentIdx !== -1) {
+        updates.push({
+          id: hidden.task.id,
+          sortOrder: updates[parentIdx].sortOrder,
+          parentId: hidden.task.parentId,
+        });
+      }
+    }
+
+    await fetch("/api/tasks/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    });
+    await loadProjects();
+  }
+
   function openEditTask(taskId: string) {
     const task = currentTasks.find((t) => t.id === taskId);
     if (task) {
@@ -259,10 +297,10 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#111416]">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-[#3A4149] bg-[#1A1D21] px-6 py-3">
-        <div className="flex items-center gap-4">
-          <img src="/sesg-logo.svg" alt="SESG" className="h-8" />
-          <h1 className="text-lg font-semibold text-[#6CC5C0]">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#3A4149] bg-[#1A1D21] px-3 py-2 md:px-6 md:py-3">
+        <div className="flex items-center gap-2 md:gap-4">
+          <img src="/sesg-logo.svg" alt="SESG" className="h-6 md:h-8" />
+          <h1 className="hidden text-lg font-semibold text-[#6CC5C0] sm:block">
             Project Gantt
           </h1>
           <ProjectSelector
@@ -271,7 +309,7 @@ export default function Home() {
             onSelect={setCurrentProjectId}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
           <Tabs
             value={view}
             onValueChange={(v) => setView(v as "detailed" | "highlevel")}
@@ -279,13 +317,13 @@ export default function Home() {
             <TabsList className="bg-[#262B30]">
               <TabsTrigger
                 value="detailed"
-                className="data-[state=active]:bg-[#6CC5C0] data-[state=active]:text-[#1A1D21]"
+                className="px-2 text-xs data-[state=active]:bg-[#6CC5C0] data-[state=active]:text-[#1A1D21] md:px-3 md:text-sm"
               >
                 Detailed
               </TabsTrigger>
               <TabsTrigger
                 value="highlevel"
-                className="data-[state=active]:bg-[#6CC5C0] data-[state=active]:text-[#1A1D21]"
+                className="px-2 text-xs data-[state=active]:bg-[#6CC5C0] data-[state=active]:text-[#1A1D21] md:px-3 md:text-sm"
               >
                 High Level
               </TabsTrigger>
@@ -295,7 +333,7 @@ export default function Home() {
             variant="outline"
             size="sm"
             onClick={() => setProjectModalOpen(true)}
-            className="border-[#3A4149] text-[#8899A6] hover:bg-[#262B30]"
+            className="border-[#3A4149] text-xs text-[#8899A6] hover:bg-[#262B30] md:text-sm"
           >
             + Project
           </Button>
@@ -304,7 +342,7 @@ export default function Home() {
               variant="outline"
               size="sm"
               onClick={handleDeleteProject}
-              className="border-[#3A4149] text-red-400 hover:bg-red-900/20"
+              className="hidden border-[#3A4149] text-red-400 hover:bg-red-900/20 sm:inline-flex"
             >
               Delete Project
             </Button>
@@ -313,15 +351,15 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="p-6">
+      <main className="p-2 md:p-6">
         {loading && projects.length === 0 ? (
           <div className="flex h-40 items-center justify-center text-[#8899A6]">
             Loading projects...
           </div>
         ) : view === "detailed" ? (
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {/* Toolbar */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 onClick={openAddTask}
                 className="bg-[#6CC5C0] text-[#1A1D21] hover:bg-[#4DA8A3]"
@@ -342,29 +380,30 @@ export default function Home() {
                 variant="outline"
                 size="sm"
                 onClick={handleExportCSV}
-                className="border-[#3A4149] text-[#8899A6] hover:bg-[#262B30]"
+                className="border-[#3A4149] text-xs text-[#8899A6] hover:bg-[#262B30]"
               >
-                Export CSV
+                CSV
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportJSON}
-                className="border-[#3A4149] text-[#8899A6] hover:bg-[#262B30]"
+                className="border-[#3A4149] text-xs text-[#8899A6] hover:bg-[#262B30]"
               >
-                Export JSON
+                JSON
               </Button>
             </div>
 
-            {/* Task table + Gantt side by side */}
-            <div className="flex gap-0 overflow-hidden rounded-lg border border-[#3A4149]">
-              <div className="min-w-[600px] flex-none overflow-auto border-r border-[#3A4149] bg-[#1A1D21]">
+            {/* Task table + Gantt: stack on mobile, side-by-side on desktop */}
+            <div className="flex flex-col gap-0 overflow-hidden rounded-lg border border-[#3A4149] lg:flex-row">
+              <div className="max-h-[50vh] flex-none overflow-auto border-b border-[#3A4149] bg-[#1A1D21] lg:max-h-none lg:min-w-[600px] lg:border-b-0 lg:border-r">
                 <TaskTable
                   displayItems={displayList}
                   idToNumber={idToNumber}
                   onEdit={openEditTask}
                   onDelete={handleDeleteTask}
                   onToggleCollapse={handleToggleCollapse}
+                  onReorder={handleReorder}
                 />
               </div>
               <div className="flex-1 overflow-auto bg-[#1A1D21]">
