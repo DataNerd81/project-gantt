@@ -1,0 +1,28 @@
+name,parenttask,category,assigned,progress,startdate,days,milestone
+Impact Report,,Impact Report,,0,2026-01-05,1,false
+RFIs,Impact Report,Impact Report,,0,2026-01-05,1,false
+Climate Change - prepare and issue,RFIs,Impact Report,Jackie,50,2026-01-05,2,false
+Climate Change - respond,RFIs,Impact Report,Scenic,50,2026-01-29,30,false
+Own Workforce - prepare and issue,RFIs,Impact Report,Jackie,100,2026-01-27,2,false
+Own Workforce - respond,RFIs,Impact Report,Scenic,0,2026-01-29,30,false
+Value Chain Workers - prepare and issue,RFIs,Impact Report,Jackie,0,2026-01-27,2,false
+Value Chain Workers - respond,RFIs,Impact Report,Scenic,0,2026-01-29,30,false
+Consumers & End Users - prepare and issue,RFIs,Impact Report,Jackie,0,2026-01-27,2,false
+Consumers & End Users - respond,RFIs,Impact Report,Scenic,0,2026-01-29,30,false
+Governance - prepare and issue,RFIs,Impact Report,Jackie,0,2026-01-27,2,false
+Governance - respond,RFIs,Impact Report,Scenic,0,2026-01-29,30,false
+Identify Case Studies & Owners,RFIs,Impact Report,Jackie/Phil,0,2026-01-27,2,false
+Provide case study information,RFIs,Impact Report,Scenic,0,2026-01-29,30,false
+Report,Impact Report,Impact Report,,0,2026-03-09,1,false
+Prepare Report Strawman,Report,Impact Report,Jackie,0,2026-03-09,2,false
+Confirm structure/layout,Report,Impact Report,Scenic,0,2026-03-11,1,false
+Build out content,Report,Impact Report,Jackie,0,2026-03-16,21,false
+Review draft content,Report,Impact Report,Scenic,0,2026-04-06,5,false
+Update content based on feedback,Report,Impact Report,Jackie,0,2026-04-13,5,false
+Design,Impact Report,Impact Report,,0,2026-01-17,1,false
+Seek quote from Cordial,Design,Impact Report,Jackie,50,2026-01-17,3,false
+Provide content,Design,Impact Report,Jackie,0,2026-05-04,1,true
+Design development,Design,Impact Report,Cordial,0,2026-05-04,14,false
+Review,Design,Impact Report,Scenic/SESG,0,2026-04-18,2,false
+Update and finalise,Design,Impact Report,Cordial,0,2026-05-20,3,true
+Publish report on public website,Design,Impact Report,Scenic,0,2026-05-29,1,true
