@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+const WORKOS_ENABLED = process.env.NEXT_PUBLIC_WORKOS_ENABLED === "true";
+
 export function LoginGate({
   onAuthenticated,
 }: {
@@ -33,6 +35,10 @@ export function LoginGate({
     setLoading(false);
   }
 
+  function handleWorkOSLogin() {
+    window.location.href = "/api/auth/workos-login";
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111416]">
       <div className="w-[90%] max-w-[380px] rounded-2xl border border-[#3A4149] bg-[#1A1D21] p-12 text-center shadow-2xl">
@@ -45,26 +51,38 @@ export function LoginGate({
           Project Gantt
         </h2>
         <p className="mb-6 text-sm text-[#8899A6]">
-          Enter the password to continue
+          {WORKOS_ENABLED
+            ? "Sign in to continue"
+            : "Enter the password to continue"}
         </p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            type="password"
-            placeholder="Enter password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="border-[#3A4149] bg-[#262B30] text-white placeholder:text-[#8899A6]"
-            autoFocus
-          />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+
+        {WORKOS_ENABLED ? (
           <Button
-            type="submit"
-            disabled={loading || !password}
+            onClick={handleWorkOSLogin}
             className="w-full bg-[#6CC5C0] text-[#1A1D21] hover:bg-[#4DA8A3]"
           >
-            {loading ? "Checking..." : "Unlock"}
+            Sign in with SSO
           </Button>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="border-[#3A4149] bg-[#262B30] text-white placeholder:text-[#8899A6]"
+              autoFocus
+            />
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <Button
+              type="submit"
+              disabled={loading || !password}
+              className="w-full bg-[#6CC5C0] text-[#1A1D21] hover:bg-[#4DA8A3]"
+            >
+              {loading ? "Checking..." : "Unlock"}
+            </Button>
+          </form>
+        )}
       </div>
     </div>
   );

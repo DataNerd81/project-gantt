@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 
-// WorkOS auth stub - replace with real WorkOS integration when credentials are ready
-// Set NEXT_PUBLIC_WORKOS_ENABLED="true" in .env.local to enable
+const WORKOS_ENABLED = process.env.NEXT_PUBLIC_WORKOS_ENABLED === "true";
 
 export interface User {
   id: string;
@@ -11,10 +10,8 @@ export interface User {
 }
 
 export async function getUser(): Promise<User | null> {
-  const enabled = process.env.NEXT_PUBLIC_WORKOS_ENABLED === "true";
-
-  if (!enabled) {
-    // When WorkOS is disabled, check for simple session cookie
+  if (!WORKOS_ENABLED) {
+    // Simple password-gate session
     const cookieStore = await cookies();
     const session = cookieStore.get("gantt_session");
     if (session?.value === "authenticated") {
@@ -28,11 +25,22 @@ export async function getUser(): Promise<User | null> {
     return null;
   }
 
-  // TODO: Implement WorkOS authentication
-  // import { WorkOS } from '@workos-inc/node';
-  // const workos = new WorkOS(process.env.WORKOS_API_KEY);
-  // ... verify session JWT from cookie
-  return null;
+  // WorkOS AuthKit session
+  const cookieStore = await cookies();
+  const sessionData = cookieStore.get("workos_session");
+  if (!sessionData?.value) return null;
+
+  try {
+    const user = JSON.parse(sessionData.value);
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName || null,
+      lastName: user.lastName || null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function createSession(): Promise<void> {
@@ -45,7 +53,18 @@ export async function createSession(): Promise<void> {
   });
 }
 
+export async function createWorkOSSession(user: User): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set("workos_session", JSON.stringify(user), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  });
+}
+
 export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete("gantt_session");
+  cookieStore.delete("workos_session");
 }
