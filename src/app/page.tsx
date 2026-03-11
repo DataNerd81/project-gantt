@@ -7,6 +7,7 @@ import { LoginGate } from "@/components/login-gate";
 import { ProjectSelector } from "@/components/project-selector";
 import { ProjectModal } from "@/components/project-modal";
 import { TaskModal } from "@/components/task-modal";
+import { ImportModal } from "@/components/import-modal";
 import { TaskTable } from "@/components/task-table";
 import { GanttTimeline } from "@/components/gantt-timeline";
 import { HighLevelView } from "@/components/high-level-view";
@@ -22,6 +23,7 @@ export default function Home() {
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskData | null>(null);
   const [isMilestone, setIsMilestone] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadProjects = useCallback(async () => {
@@ -379,6 +381,14 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setImportModalOpen(true)}
+                className="border-[#3A4149] text-xs text-[#6CC5C0] hover:bg-[#262B30]"
+              >
+                Import CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleExportCSV}
                 className="border-[#3A4149] text-xs text-[#8899A6] hover:bg-[#262B30]"
               >
@@ -430,6 +440,15 @@ export default function Home() {
         open={projectModalOpen}
         onClose={() => setProjectModalOpen(false)}
         onSave={handleCreateProject}
+      />
+      <ImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        projectId={currentProjectId}
+        onImported={() => {
+          setImportModalOpen(false);
+          loadProjects();
+        }}
       />
       <TaskModal
         open={taskModalOpen}
