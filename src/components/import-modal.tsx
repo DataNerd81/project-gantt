@@ -92,7 +92,12 @@ export function ImportModal({
           </p>
           <p className="text-sm text-[#8899A6]">
             Optional columns: Category, Assigned To, Progress %, Start Date,
-            Days, Milestone, Color.
+            Days, Milestone, Color, Parent Task.
+          </p>
+          <p className="text-sm text-[#8899A6]">
+            To create subtasks, put the parent task&apos;s name in the{" "}
+            <strong>Parent Task</strong> column. The parent must appear in the
+            CSV or already exist in the project.
           </p>
 
           <div className="rounded border border-dashed border-[#3A4149] p-4 text-center">

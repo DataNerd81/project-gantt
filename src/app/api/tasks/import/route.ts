@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
     const daysIdx = colIndex(["days", "duration"]);
     const milestoneIdx = colIndex(["milestone"]);
     const colorIdx = colIndex(["color", "colour"]);
+    const parentIdx = colIndex(["parenttask", "parent", "subtaskof"]);
 
     if (nameIdx === -1) {
       return NextResponse.json(
@@ -92,9 +93,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const created = [];
-    const errors = [];
+    const created: Array<{
+      id: string;
+      name: string;
+      wantParent: string | null;
+    }> = [];
+    const errors: string[] = [];
 
+    // First pass: create all tasks (without parent links)
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCSVLine(lines[i]);
       const name = cols[nameIdx];
@@ -103,15 +109,17 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
+      // Track requested parent name for second pass
+      const wantParent =
+        parentIdx >= 0 && cols[parentIdx] ? cols[parentIdx].trim() : null;
+
       // Parse start date - accept various formats
       let startDate = "";
       if (startDateIdx >= 0 && cols[startDateIdx]) {
         const raw = cols[startDateIdx];
-        // Try ISO format first (YYYY-MM-DD)
         if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
           startDate = raw.slice(0, 10);
         } else {
-          // Try parsing as a date
           const parsed = new Date(raw);
           if (!isNaN(parsed.getTime())) {
             startDate = parsed.toISOString().slice(0, 10);
@@ -165,9 +173,37 @@ export async function POST(request: NextRequest) {
             dependencies: [],
           })
           .returning();
-        created.push(task);
+        created.push({ ...task, wantParent });
       } catch (e) {
         errors.push(`Row ${i + 1}: Failed to insert - ${(e as Error).message}`);
+      }
+    }
+
+    // Second pass: link subtasks to their parents by name
+    const needsParent = created.filter((t) => t.wantParent);
+    if (needsParent.length > 0) {
+      const { eq } = await import("drizzle-orm");
+
+      // Build a name->id map from created tasks + existing project tasks
+      const nameToId = new Map<string, string>();
+      const existingTasks = await db
+        .select({ id: tasks.id, name: tasks.name })
+        .from(tasks)
+        .where(eq(tasks.projectId, projectId));
+      for (const t of existingTasks) {
+        nameToId.set(t.name.toLowerCase(), t.id);
+      }
+
+      for (const task of needsParent) {
+        const parentId = nameToId.get(task.wantParent!.toLowerCase());
+        if (parentId && parentId !== task.id) {
+          await db
+            .update(tasks)
+            .set({ parentId })
+            .where(eq(tasks.id, task.id));
+        } else if (!parentId) {
+          errors.push(`"${task.name}": parent "${task.wantParent}" not found`);
+        }
       }
     }
 
