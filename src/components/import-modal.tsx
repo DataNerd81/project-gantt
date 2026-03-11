@@ -100,22 +100,24 @@ export function ImportModal({
             CSV or already exist in the project.
           </p>
 
-          <button
-            type="button"
-            onClick={() => {
-              const headers = "Task Name,Category,Assigned To,Progress %,Start Date,Days,Milestone,Color,Parent Task";
-              const blob = new Blob([headers + "\n"], { type: "text/csv" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "gantt_import_template.csv";
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-            className="text-xs text-[#6CC5C0] hover:underline"
-          >
-            Download blank CSV template
-          </button>
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                const headers = "Task Name,Category,Assigned To,Progress %,Start Date,Days,Milestone,Color,Parent Task";
+                const blob = new Blob([headers + "\n"], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "gantt_import_template.csv";
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="rounded border border-[#6CC5C0] px-3 py-1.5 text-sm text-[#6CC5C0] hover:bg-[#6CC5C0]/10"
+            >
+              ↓ Download Blank CSV Template
+            </button>
+          </div>
 
           <div className="rounded border border-dashed border-[#3A4149] p-4 text-center">
             <input
