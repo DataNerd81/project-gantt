@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ProjectData, TaskData } from "@/lib/types";
-import { buildDisplayList, buildNumberMap, recalcParent } from "@/lib/gantt-utils";
+import { buildDisplayList, buildNumberMap, recalcParent, recalcAllParents } from "@/lib/gantt-utils";
 import { LoginGate } from "@/components/login-gate";
 import { ProjectSelector } from "@/components/project-selector";
 import { ProjectModal } from "@/components/project-modal";
@@ -32,6 +32,17 @@ export default function Home() {
       const res = await fetch("/api/projects");
       if (res.ok) {
         const data: ProjectData[] = await res.json();
+        // Recalculate parent tasks from children and persist any corrections
+        for (const project of data) {
+          const changes = recalcAllParents(project.tasks || []);
+          for (const { id, updates } of changes) {
+            fetch(`/api/tasks/${id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updates),
+            });
+          }
+        }
         setProjects(data);
         setCurrentProjectId((prev) => {
           if (prev && data.some((p) => p.id === prev)) return prev;

@@ -78,6 +78,30 @@ export function recalcParent(
   };
 }
 
+export function recalcAllParents(
+  tasks: TaskData[]
+): { id: string; updates: Partial<TaskData> }[] {
+  const changes: { id: string; updates: Partial<TaskData> }[] = [];
+  const parentIds = new Set(
+    tasks.filter((t) => t.parentId).map((t) => t.parentId!)
+  );
+  for (const pid of parentIds) {
+    const updates = recalcParent(tasks, pid);
+    if (!updates) continue;
+    const parent = tasks.find((t) => t.id === pid);
+    if (
+      parent &&
+      (parent.startDate !== updates.startDate ||
+        parent.days !== updates.days ||
+        parent.progress !== updates.progress)
+    ) {
+      Object.assign(parent, updates);
+      changes.push({ id: pid, updates });
+    }
+  }
+  return changes;
+}
+
 export function parseDate(s: string): Date {
   return new Date(s + "T00:00:00");
 }
