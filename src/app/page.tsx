@@ -449,7 +449,7 @@ export default function Home() {
                   onReorder={handleReorder}
                 />
               </div>
-              <div className="flex-1 overflow-auto bg-[#1A1D21]">
+              <div className="flex min-h-[300px] flex-1 flex-col overflow-hidden bg-[#1A1D21]">
                 <GanttTimeline
                   displayItems={displayList}
                   onEditTask={openEditTask}
