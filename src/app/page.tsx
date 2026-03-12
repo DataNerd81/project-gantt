@@ -309,6 +309,14 @@ export default function Home() {
             projects={projects}
             currentProjectId={currentProjectId}
             onSelect={setCurrentProjectId}
+            onRename={async (id, newName) => {
+              await fetch(`/api/projects/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newName }),
+              });
+              loadProjects();
+            }}
           />
         </div>
         <div className="flex items-center gap-1 md:gap-2">
