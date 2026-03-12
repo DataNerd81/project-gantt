@@ -178,8 +178,8 @@ describe("recalcParent", () => {
     const result = recalcParent(tasks, "p1");
     expect(result).not.toBeNull();
     expect(result!.startDate).toBe("2026-03-01");
-    // Span: Mar 1 to Mar 8 (c1 ends Mar 5+3=Mar 8) = 7 days
-    expect(result!.days).toBe(7);
+    // Sum of children: c1(3) + c2(2) = 5 days
+    expect(result!.days).toBe(5);
   });
 
   it("calculates weighted progress", () => {

@@ -69,11 +69,9 @@ export function recalcParent(
     totalDays += c.days;
   });
 
-  const spanDays = Math.round((maxEnd.getTime() - minStart.getTime()) / 86400000);
-
   return {
     startDate: minStart.toISOString().split("T")[0],
-    days: Math.max(1, spanDays),
+    days: Math.max(1, totalDays),
     progress: totalDays > 0 ? Math.round(totalWeightedProgress / totalDays) : 0,
   };
 }
