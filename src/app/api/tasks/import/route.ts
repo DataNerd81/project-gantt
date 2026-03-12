@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
       }, -1);
 
     const nameIdx = colIndex(["taskname", "name"]);
+    const subtaskIdx = colIndex(["subtask"]);
     const categoryIdx = colIndex(["category"]);
     const assignedIdx = colIndex(["assigned", "assignedto"]);
     const progressIdx = colIndex(["progress"]);
@@ -83,11 +84,12 @@ export async function POST(request: NextRequest) {
     const colorIdx = colIndex(["color", "colour"]);
     const parentIdx = colIndex(["parenttask", "parent", "subtaskof"]);
 
-    if (nameIdx === -1) {
+    // Need at least a Task Name or Sub Task column
+    if (nameIdx === -1 && subtaskIdx === -1) {
       return NextResponse.json(
         {
           error:
-            'Could not find a "Task Name" or "Name" column in the CSV header',
+            'Could not find a "Task Name", "Name", or "Sub Task" column in the CSV header',
         },
         { status: 400 }
       );
@@ -103,15 +105,27 @@ export async function POST(request: NextRequest) {
     // First pass: create all tasks (without parent links)
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCSVLine(lines[i]);
-      const name = cols[nameIdx];
+
+      // If a "Sub Task" column exists and has a value, use it as the task name.
+      // Otherwise fall back to "Task Name" column.
+      const subtaskName = subtaskIdx >= 0 ? cols[subtaskIdx]?.trim() : "";
+      const taskName = nameIdx >= 0 ? cols[nameIdx]?.trim() : "";
+      const name = subtaskName || taskName;
       if (!name) {
         errors.push(`Row ${i + 1}: Missing task name, skipped`);
         continue;
       }
 
-      // Track requested parent name for second pass
-      const wantParent =
-        parentIdx >= 0 && cols[parentIdx] ? cols[parentIdx].trim() : null;
+      // Track requested parent name for second pass.
+      // If a "Parent Task" column exists, use it. Otherwise, if there's a
+      // "Sub Task" column, treat the "Task Name" column as the parent name.
+      let wantParent: string | null = null;
+      if (parentIdx >= 0 && cols[parentIdx]?.trim()) {
+        wantParent = cols[parentIdx].trim();
+      } else if (subtaskIdx >= 0 && subtaskName && taskName && taskName !== subtaskName) {
+        // "Sub Task" is the task, "Task Name" acts as parent group
+        wantParent = taskName;
+      }
 
       // Parse start date - accept various formats
       let startDate = "";
@@ -212,14 +226,40 @@ export async function POST(request: NextRequest) {
       }
 
       for (const task of needsParent) {
-        const parentId = nameToId.get(task.wantParent!.toLowerCase());
+        let parentId = nameToId.get(task.wantParent!.toLowerCase());
+
+        // Auto-create the parent task if it doesn't exist
+        if (!parentId) {
+          const autoId = `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_auto`;
+          try {
+            await db.insert(tasks).values({
+              id: autoId,
+              projectId,
+              name: task.wantParent!,
+              category: "Planning",
+              assigned: "",
+              startDate: new Date().toISOString().slice(0, 10),
+              days: 1,
+              progress: 0,
+              isMilestone: false,
+              color: "#6CC5C0",
+              parentId: null,
+              collapsed: false,
+              sortOrder: -1,
+              dependencies: [],
+            });
+            parentId = autoId;
+            nameToId.set(task.wantParent!.toLowerCase(), autoId);
+          } catch {
+            errors.push(`"${task.name}": failed to auto-create parent "${task.wantParent}"`);
+          }
+        }
+
         if (parentId && parentId !== task.id) {
           await db
             .update(tasks)
             .set({ parentId })
             .where(eq(tasks.id, task.id));
-        } else if (!parentId) {
-          errors.push(`"${task.name}": parent "${task.wantParent}" not found`);
         }
       }
     }

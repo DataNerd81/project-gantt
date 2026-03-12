@@ -88,23 +88,25 @@ export function ImportModal({
           <p className="text-sm text-[#8899A6]">
             Upload a CSV file with your tasks. Save your Excel file as .csv
             first. Required column: <strong>Task Name</strong> (or{" "}
-            <strong>Name</strong>).
+            <strong>Sub Task</strong>).
           </p>
           <p className="text-sm text-[#8899A6]">
             Optional columns: Category, Assigned To, Progress %, Start Date,
             Days, Milestone, Color, Parent Task.
           </p>
           <p className="text-sm text-[#8899A6]">
-            To create subtasks, put the parent task&apos;s name in the{" "}
-            <strong>Parent Task</strong> column. The parent must appear in the
-            CSV or already exist in the project.
+            To create subtasks, put the parent&apos;s name in{" "}
+            <strong>Parent Task</strong>. Parents are auto-created if they
+            don&apos;t exist. You can also use a <strong>Sub Task</strong>{" "}
+            column for the task name with <strong>Task Name</strong> as the
+            parent group.
           </p>
 
           <div className="flex justify-center">
             <button
               type="button"
               onClick={() => {
-                const headers = "Task Name,Category,Assigned To,Progress %,Start Date,Days,Milestone,Color,Parent Task";
+                const headers = "Task Name,Parent Task,Sub Task,Category,Assigned To,Progress %,Start Date,Days,Milestone,Color";
                 const blob = new Blob([headers + "\n"], { type: "text/csv" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
