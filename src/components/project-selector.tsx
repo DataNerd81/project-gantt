@@ -23,71 +23,84 @@ export function ProjectSelector({
   onSelect,
   onRename,
 }: ProjectSelectorProps) {
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const currentProject = projects.find((p) => p.id === currentProjectId);
+
   useEffect(() => {
-    if (editingId && inputRef.current) {
+    if (editing && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [editingId]);
+  }, [editing]);
 
   if (projects.length === 0) return null;
 
-  function handleDoubleClick(e: React.MouseEvent, p: ProjectData) {
-    e.preventDefault();
-    e.stopPropagation();
-    setEditingId(p.id);
-    setEditName(p.name);
+  function handleRenameSubmit() {
+    const trimmed = editName.trim();
+    if (trimmed && onRename && currentProjectId) {
+      onRename(currentProjectId, trimmed);
+    }
+    setEditing(false);
   }
 
-  function handleRenameSubmit(id: string) {
-    const trimmed = editName.trim();
-    if (trimmed && onRename) {
-      onRename(id, trimmed);
+  function startEditing() {
+    if (currentProject) {
+      setEditName(currentProject.name);
+      setEditing(true);
     }
-    setEditingId(null);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={editName}
+        onChange={(e) => setEditName(e.target.value)}
+        onBlur={handleRenameSubmit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleRenameSubmit();
+          if (e.key === "Escape") setEditing(false);
+        }}
+        className="w-[240px] rounded-md border border-[#6CC5C0] bg-[#262B30] px-3 py-1.5 text-sm text-white outline-none"
+      />
+    );
   }
 
   return (
-    <Select value={currentProjectId || ""} onValueChange={(v) => { if (v) onSelect(v); }}>
-      <SelectTrigger className="w-[240px] border-[#3A4149] bg-[#262B30] text-white">
-        <SelectValue placeholder="Select a project" />
-      </SelectTrigger>
-      <SelectContent className="border-[#3A4149] bg-[#262B30] text-white">
-        {projects.map((p) => (
-          <SelectItem key={p.id} value={p.id}>
-            {editingId === p.id ? (
-              <input
-                ref={inputRef}
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                onBlur={() => handleRenameSubmit(p.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleRenameSubmit(p.id);
-                  if (e.key === "Escape") setEditingId(null);
-                  e.stopPropagation();
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full border-b border-[#6CC5C0] bg-transparent text-white outline-none"
-              />
-            ) : (
-              <div
-                className="flex items-center gap-2"
-                onDoubleClick={(e) => handleDoubleClick(e, p)}
-              >
+    <div className="flex items-center gap-1">
+      <Select value={currentProjectId || ""} onValueChange={(v) => { if (v) onSelect(v); }}>
+        <SelectTrigger className="w-[240px] border-[#3A4149] bg-[#262B30] text-white">
+          <SelectValue placeholder="Select a project" />
+        </SelectTrigger>
+        <SelectContent className="border-[#3A4149] bg-[#262B30] text-white">
+          {projects.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              <div className="flex items-center gap-2">
                 <div
                   className="h-3 w-3 rounded-full"
                   style={{ background: p.color }}
                 />
                 {p.name}
               </div>
-            )}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {onRename && currentProject && (
+        <button
+          onClick={startEditing}
+          className="rounded p-1 text-[#8899A6] hover:bg-[#262B30] hover:text-white"
+          title="Rename project"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+            <path d="m15 5 4 4" />
+          </svg>
+        </button>
+      )}
+    </div>
   );
 }
