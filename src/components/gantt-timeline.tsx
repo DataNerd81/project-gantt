@@ -97,24 +97,24 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
 
   return (
     <div className="overflow-auto" ref={chartRef}>
-      {/* Header */}
+      {/* Header — two rows that together match the table header height */}
       <div style={{ width: totalWidth }} className="sticky top-0 z-10 bg-[#1A1D21]">
-        <div className="flex border-b border-[#3A4149]">
+        <div className="flex" style={{ height: 17 }}>
           {months.map((m, i) => (
             <div
               key={i}
-              className="flex-none border-r border-[#3A4149]/50 px-1 py-1 text-center text-[10px] text-[#8899A6]"
+              className="flex-none border-r border-[#3A4149]/50 px-1 text-center text-[10px] leading-[17px] text-[#8899A6]"
               style={{ width: m.width }}
             >
               {m.label}
             </div>
           ))}
         </div>
-        <div className="flex border-b border-[#3A4149]">
+        <div className="flex border-b border-[#3A4149]" style={{ height: 18 }}>
           {days.map((d, i) => (
             <div
               key={i}
-              className={`flex-none text-center text-[10px] leading-6 ${
+              className={`flex-none text-center text-[10px] leading-[18px] ${
                 d.isToday
                   ? "bg-[#6CC5C0]/20 font-bold text-[#6CC5C0]"
                   : d.isWeekend
@@ -203,7 +203,7 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
               >
                 <div
                   className="h-full rounded-sm"
-                  style={{ width: `${t.progress}%`, background: "rgba(255,255,255,0.35)" }}
+                  style={{ width: `${t.progress}%`, background: "#FBBF24" }}
                 />
               </div>
             );
@@ -223,10 +223,11 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
               onClick={() => onEditTask(t.id)}
             >
               <div
-                className="absolute inset-0"
+                className="absolute inset-0 rounded-[3px]"
                 style={{
                   width: `${t.progress}%`,
-                  background: "rgba(255,255,255,0.3)",
+                  background: "#FBBF24",
+                  opacity: 0.45,
                 }}
               />
               <span className="relative z-10 truncate px-1 text-[10px] font-medium text-white mix-blend-difference">
