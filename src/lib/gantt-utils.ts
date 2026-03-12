@@ -69,13 +69,45 @@ export function recalcParent(
     totalDays += c.days;
   });
 
-  const spanDays = Math.round((maxEnd.getTime() - minStart.getTime()) / 86400000);
-
   return {
     startDate: minStart.toISOString().split("T")[0],
-    days: Math.max(1, spanDays),
+    days: Math.max(1, totalDays),
     progress: totalDays > 0 ? Math.round(totalWeightedProgress / totalDays) : 0,
   };
+}
+
+export function recalcAllParents(
+  tasks: TaskData[]
+): { id: string; updates: Partial<TaskData> }[] {
+  const changes: { id: string; updates: Partial<TaskData> }[] = [];
+  const parentIds = new Set(
+    tasks.filter((t) => t.parentId).map((t) => t.parentId!)
+  );
+
+  // Sort parents bottom-up: process leaf-level parents (those that are NOT
+  // themselves children) last, so nested groups recalculate correctly.
+  // A parent that is also a child of another parent should be processed first.
+  const sortedParentIds = [...parentIds].sort((a, b) => {
+    const aIsChild = tasks.find((t) => t.id === a)?.parentId ? 1 : 0;
+    const bIsChild = tasks.find((t) => t.id === b)?.parentId ? 1 : 0;
+    return bIsChild - aIsChild; // children-first (deeper parents first)
+  });
+
+  for (const pid of sortedParentIds) {
+    const updates = recalcParent(tasks, pid);
+    if (!updates) continue;
+    const parent = tasks.find((t) => t.id === pid);
+    if (
+      parent &&
+      (parent.startDate !== updates.startDate ||
+        parent.days !== updates.days ||
+        parent.progress !== updates.progress)
+    ) {
+      Object.assign(parent, updates);
+      changes.push({ id: pid, updates });
+    }
+  }
+  return changes;
 }
 
 export function parseDate(s: string): Date {
