@@ -116,9 +116,23 @@ export async function POST(request: NextRequest) {
       // Parse start date - accept various formats
       let startDate = "";
       if (startDateIdx >= 0 && cols[startDateIdx]) {
-        const raw = cols[startDateIdx];
+        const raw = cols[startDateIdx].trim();
         if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+          // ISO format: YYYY-MM-DD
           startDate = raw.slice(0, 10);
+        } else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(raw)) {
+          // DD/MM/YYYY or D/MM/YYYY format
+          const [d, m, y] = raw.split("/");
+          const dd = d.padStart(2, "0");
+          const mm = m.padStart(2, "0");
+          startDate = `${y}-${mm}-${dd}`;
+        } else if (/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(raw)) {
+          // DD/MM/YY short year format
+          const [d, m, y] = raw.split("/");
+          const dd = d.padStart(2, "0");
+          const mm = m.padStart(2, "0");
+          const yyyy = parseInt(y) > 50 ? `19${y}` : `20${y}`;
+          startDate = `${yyyy}-${mm}-${dd}`;
         } else {
           const parsed = new Date(raw);
           if (!isNaN(parsed.getTime())) {
@@ -135,10 +149,13 @@ export async function POST(request: NextRequest) {
           ? Math.max(1, parseInt(cols[daysIdx]) || 1)
           : 1;
 
-      const progress =
-        progressIdx >= 0 && cols[progressIdx]
-          ? Math.min(100, Math.max(0, parseInt(cols[progressIdx]) || 0))
-          : 0;
+      let progress = 0;
+      if (progressIdx >= 0 && cols[progressIdx]) {
+        const pVal = parseFloat(cols[progressIdx]) || 0;
+        // If value is between 0 and 1 (exclusive), treat as decimal (0.5 = 50%)
+        progress = pVal > 0 && pVal < 1 ? Math.round(pVal * 100) : Math.round(pVal);
+        progress = Math.min(100, Math.max(0, progress));
+      }
 
       const isMilestone =
         milestoneIdx >= 0 && cols[milestoneIdx]
