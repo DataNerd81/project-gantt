@@ -87,19 +87,17 @@ export function ImportModal({
         <div className="grid gap-4 py-4">
           <p className="text-sm text-[#8899A6]">
             Upload a CSV file with your tasks. Save your Excel file as .csv
-            first. Required column: <strong>Task Name</strong> (or{" "}
-            <strong>Sub Task</strong>).
+            first.
           </p>
           <p className="text-sm text-[#8899A6]">
-            Optional columns: Category, Assigned To, Progress %, Start Date,
-            Days, Milestone, Color, Parent Task.
+            Use <strong>Parent Task</strong> for the task name (e.g.
+            &quot;RFIs&quot;) and <strong>Sub Task</strong> for child tasks
+            (e.g. &quot;Climate Change - prepare and issue&quot;). Parent
+            tasks are auto-created if they don&apos;t have their own row.
           </p>
           <p className="text-sm text-[#8899A6]">
-            To create subtasks, put the parent&apos;s name in{" "}
-            <strong>Parent Task</strong>. Parents are auto-created if they
-            don&apos;t exist. You can also use a <strong>Sub Task</strong>{" "}
-            column for the task name with <strong>Task Name</strong> as the
-            parent group.
+            Optional columns: Category, Assigned To, Progress %, Start Date
+            (DD/MM/YYYY), Days, Milestone, Color.
           </p>
 
           <div className="flex justify-center">
