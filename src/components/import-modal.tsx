@@ -87,24 +87,24 @@ export function ImportModal({
         <div className="grid gap-4 py-4">
           <p className="text-sm text-[#8899A6]">
             Upload a CSV file with your tasks. Save your Excel file as .csv
-            first. Required column: <strong>Task Name</strong> (or{" "}
-            <strong>Name</strong>).
+            first.
           </p>
           <p className="text-sm text-[#8899A6]">
-            Optional columns: Category, Assigned To, Progress %, Start Date,
-            Days, Milestone, Color, Parent Task.
+            Use <strong>Parent Task</strong> for the task name (e.g.
+            &quot;RFIs&quot;) and <strong>Sub Task</strong> for child tasks
+            (e.g. &quot;Climate Change - prepare and issue&quot;). Parent
+            tasks are auto-created if they don&apos;t have their own row.
           </p>
           <p className="text-sm text-[#8899A6]">
-            To create subtasks, put the parent task&apos;s name in the{" "}
-            <strong>Parent Task</strong> column. The parent must appear in the
-            CSV or already exist in the project.
+            Optional columns: Category, Assigned To, Progress %, Start Date
+            (DD/MM/YYYY), Days, Milestone, Color.
           </p>
 
           <div className="flex justify-center">
             <button
               type="button"
               onClick={() => {
-                const headers = "Task Name,Category,Assigned To,Progress %,Start Date,Days,Milestone,Color,Parent Task";
+                const headers = "Task Name,Parent Task,Sub Task,Category,Assigned To,Progress %,Start Date,Days,Milestone,Color";
                 const blob = new Blob([headers + "\n"], { type: "text/csv" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
