@@ -186,33 +186,68 @@ export default function Home() {
     if (!confirm("Delete this task?")) return;
 
     const task = currentTasks.find((t) => t.id === taskId);
-    await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
 
-    if (task?.parentId) {
-      const remaining = currentTasks.filter(
-        (t) => t.id !== taskId && t.parentId !== taskId
-      );
-      const parentUpdates = recalcParent(remaining, task.parentId);
-      if (parentUpdates) {
-        await fetch(`/api/tasks/${task.parentId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(parentUpdates),
-        });
+    // Optimistic update: remove task and its children immediately
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== currentProjectId) return p;
+        const remaining = p.tasks.filter(
+          (t) => t.id !== taskId && t.parentId !== taskId
+        );
+        // Recalc parent if needed
+        if (task?.parentId) {
+          const parentUpdates = recalcParent(remaining, task.parentId);
+          if (parentUpdates) {
+            const parent = remaining.find((t) => t.id === task.parentId);
+            if (parent) Object.assign(parent, parentUpdates);
+          }
+        }
+        return { ...p, tasks: remaining };
+      })
+    );
+
+    // Fire API calls in background
+    fetch(`/api/tasks/${taskId}`, { method: "DELETE" }).then(() => {
+      if (task?.parentId) {
+        const remaining = currentTasks.filter(
+          (t) => t.id !== taskId && t.parentId !== taskId
+        );
+        const parentUpdates = recalcParent(remaining, task.parentId);
+        if (parentUpdates) {
+          fetch(`/api/tasks/${task.parentId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(parentUpdates),
+          });
+        }
       }
-    }
-    await loadProjects();
+    });
   }
 
   async function handleToggleCollapse(taskId: string) {
     const task = currentTasks.find((t) => t.id === taskId);
     if (!task) return;
-    await fetch(`/api/tasks/${taskId}`, {
+    const newCollapsed = !task.collapsed;
+
+    // Optimistic update
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== currentProjectId) return p;
+        return {
+          ...p,
+          tasks: p.tasks.map((t) =>
+            t.id === taskId ? { ...t, collapsed: newCollapsed } : t
+          ),
+        };
+      })
+    );
+
+    // Fire API in background
+    fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ collapsed: !task.collapsed }),
+      body: JSON.stringify({ collapsed: newCollapsed }),
     });
-    await loadProjects();
   }
 
   async function handleReorder(taskId: string, newIndex: number) {
@@ -245,12 +280,26 @@ export default function Home() {
       }
     }
 
-    await fetch("/api/tasks/reorder", {
+    // Optimistic update: apply new sort orders to local state immediately
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== currentProjectId) return p;
+        const taskMap = new Map(updates.map((u) => [u.id, u.sortOrder]));
+        return {
+          ...p,
+          tasks: p.tasks.map((t) =>
+            taskMap.has(t.id) ? { ...t, sortOrder: taskMap.get(t.id)! } : t
+          ),
+        };
+      })
+    );
+
+    // Fire API in background (no await)
+    fetch("/api/tasks/reorder", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ updates }),
     });
-    await loadProjects();
   }
 
   function openEditTask(taskId: string) {

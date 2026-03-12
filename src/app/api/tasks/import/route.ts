@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
     const created: Array<{
       id: string;
       name: string;
+      sortOrder: number;
       wantParent: string | null;
     }> = [];
     const errors: string[] = [];
@@ -227,6 +228,9 @@ export async function POST(request: NextRequest) {
         nameToId.set(t.name.toLowerCase(), t.id);
       }
 
+      // Track auto-created parents and their first child's sortOrder
+      const autoParents: { id: string; firstChildSort: number }[] = [];
+
       for (const task of needsParent) {
         let parentId = nameToId.get(task.wantParent!.toLowerCase());
 
@@ -234,6 +238,8 @@ export async function POST(request: NextRequest) {
         if (!parentId) {
           const autoId = `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_auto`;
           try {
+            // Find the sortOrder of this first child so the parent appears just before it
+            const childSort = created.find((c) => c.id === task.id)?.sortOrder ?? 0;
             await db.insert(tasks).values({
               id: autoId,
               projectId,
@@ -247,11 +253,12 @@ export async function POST(request: NextRequest) {
               color: "#6CC5C0",
               parentId: null,
               collapsed: false,
-              sortOrder: -1,
+              sortOrder: childSort,
               dependencies: [],
             });
             parentId = autoId;
             nameToId.set(task.wantParent!.toLowerCase(), autoId);
+            autoParents.push({ id: autoId, firstChildSort: childSort });
           } catch {
             errors.push(`"${task.name}": failed to auto-create parent "${task.wantParent}"`);
           }
@@ -263,6 +270,39 @@ export async function POST(request: NextRequest) {
             .set({ parentId })
             .where(eq(tasks.id, task.id));
         }
+      }
+
+      // Third pass: re-number sortOrder so parents come before their children
+      // and the original CSV order is preserved
+      if (autoParents.length > 0) {
+        // Get all tasks for this project and re-sort them:
+        // parents first (by their first child's original position), then children in original order
+        const allProjectTasks = await db
+          .select({ id: tasks.id, parentId: tasks.parentId, sortOrder: tasks.sortOrder })
+          .from(tasks)
+          .where(eq(tasks.projectId, projectId));
+
+        // Separate top-level and children
+        const topLevel = allProjectTasks.filter((t) => !t.parentId).sort((a, b) => a.sortOrder - b.sortOrder);
+        const children = allProjectTasks.filter((t) => t.parentId).sort((a, b) => a.sortOrder - b.sortOrder);
+
+        // Build final order: parent followed by its children
+        const finalOrder: string[] = [];
+        for (const parent of topLevel) {
+          finalOrder.push(parent.id);
+          for (const child of children) {
+            if (child.parentId === parent.id) {
+              finalOrder.push(child.id);
+            }
+          }
+        }
+
+        // Batch update sortOrders
+        await Promise.all(
+          finalOrder.map((id, idx) =>
+            db.update(tasks).set({ sortOrder: idx }).where(eq(tasks.id, id))
+          )
+        );
       }
     }
 

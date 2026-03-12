@@ -13,16 +13,19 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   // body.updates: Array<{ id: string, sortOrder: number, parentId: string | null }>
 
-  for (const update of body.updates) {
-    await db
-      .update(tasks)
-      .set({
-        sortOrder: update.sortOrder,
-        parentId: update.parentId ?? null,
-        updatedAt: new Date(),
-      })
-      .where(eq(tasks.id, update.id));
-  }
+  // Run all updates in parallel for speed
+  await Promise.all(
+    body.updates.map((update: { id: string; sortOrder: number; parentId: string | null }) =>
+      db
+        .update(tasks)
+        .set({
+          sortOrder: update.sortOrder,
+          parentId: update.parentId ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tasks.id, update.id))
+    )
+  );
 
   return NextResponse.json({ success: true });
 }
