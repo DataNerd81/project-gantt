@@ -77,7 +77,7 @@ export function ProjectSelector({
         </SelectTrigger>
         <SelectContent className="border-[#3A4149] bg-[#262B30] text-white">
           {projects.map((p) => (
-            <SelectItem key={p.id} value={p.id}>
+            <SelectItem key={p.id} value={p.id} label={p.name}>
               <div className="flex items-center gap-2">
                 <div
                   className="h-3 w-3 rounded-full"
