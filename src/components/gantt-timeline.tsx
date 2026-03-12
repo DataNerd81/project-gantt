@@ -114,6 +114,16 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
 
   return (
     <div className="flex h-full flex-col">
+      {/* Horizontal scrollbar - always visible above dates */}
+      <div
+        ref={scrollbarRef}
+        className="flex-none overflow-x-auto overflow-y-hidden"
+        style={{ height: 12 }}
+        onScroll={() => syncScroll("scrollbar")}
+      >
+        <div style={{ width: totalWidth, height: 1 }} />
+      </div>
+
       {/* Date header - scrolls horizontally in sync */}
       <div
         ref={headerRef}
@@ -149,16 +159,6 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
             ))}
           </div>
         </div>
-      </div>
-
-      {/* Horizontal scrollbar - always visible below dates */}
-      <div
-        ref={scrollbarRef}
-        className="flex-none overflow-x-auto overflow-y-hidden"
-        style={{ height: 12 }}
-        onScroll={() => syncScroll("scrollbar")}
-      >
-        <div style={{ width: totalWidth, height: 1 }} />
       </div>
 
       {/* Task body - scrolls vertically, horizontal scroll hidden (controlled by scrollbar above) */}
@@ -239,8 +239,8 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
                   onClick={() => onEditTask(t.id)}
                 >
                   <div
-                    className="h-full rounded-sm opacity-60"
-                    style={{ width: `${t.progress}%`, background: "rgba(0,0,0,0.3)" }}
+                    className="h-full rounded-sm"
+                    style={{ width: `${t.progress}%`, background: "rgba(255,255,255,0.35)" }}
                   />
                 </div>
               );
@@ -260,10 +260,10 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
                 onClick={() => onEditTask(t.id)}
               >
                 <div
-                  className="absolute inset-0 opacity-25"
+                  className="absolute inset-0"
                   style={{
                     width: `${t.progress}%`,
-                    background: "rgba(0,0,0,0.3)",
+                    background: "rgba(255,255,255,0.3)",
                   }}
                 />
                 <span className="relative z-10 truncate px-1 text-[10px] font-medium text-white mix-blend-difference">
