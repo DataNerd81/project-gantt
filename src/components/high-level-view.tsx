@@ -63,7 +63,7 @@ export function HighLevelView({ projects, onSelectProject }: HighLevelViewProps)
     <div className="flex flex-col gap-0 overflow-hidden rounded-lg border border-[#3A4149] md:flex-row">
       {/* Left panel */}
       <div className="w-full flex-none border-b border-[#3A4149] md:w-[300px] md:border-b-0 md:border-r">
-        <div className="flex border-b border-[#3A4149] bg-[#1A1D21] px-4 py-2 text-xs text-[#8899A6]">
+        <div className="flex items-center border-b border-[#3A4149] bg-[#1A1D21] px-4 text-xs text-[#8899A6]" style={{ height: 32 }}>
           <span className="flex-1">Project</span>
           <span className="w-12 text-right">%</span>
         </div>
@@ -89,7 +89,8 @@ export function HighLevelView({ projects, onSelectProject }: HighLevelViewProps)
             return (
               <div
                 key={p.id}
-                className="flex cursor-pointer items-center border-b border-[#3A4149]/50 px-4 py-3 hover:bg-[#262B30]"
+                className="flex cursor-pointer items-center border-b border-[#3A4149]/50 px-4 hover:bg-[#262B30]"
+                style={{ height: 48 }}
                 onClick={() => onSelectProject(p.id)}
               >
                 <div className="flex-1 min-w-0">
@@ -128,11 +129,11 @@ export function HighLevelView({ projects, onSelectProject }: HighLevelViewProps)
       {/* Right timeline */}
       <div className="flex-1 overflow-auto">
         {/* Month header */}
-        <div className="sticky top-0 z-10 flex border-b border-[#3A4149] bg-[#1A1D21]" style={{ width: trackWidth }}>
+        <div className="sticky top-0 z-10 flex border-b border-[#3A4149] bg-[#1A1D21]" style={{ width: trackWidth, height: 32 }}>
           {months.map((m, i) => (
             <div
               key={i}
-              className="flex-none border-r border-[#3A4149]/50 px-1 py-2 text-center text-[10px] text-[#8899A6]"
+              className="flex-none border-r border-[#3A4149]/50 px-1 text-center text-xs leading-[32px] text-[#8899A6]"
               style={{ width: m.px }}
             >
               {m.label}
