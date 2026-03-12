@@ -78,16 +78,30 @@ export default function Home() {
 
   async function handleDeleteProject() {
     if (!currentProjectId) return;
-    if (projects.length <= 1) {
-      alert("You must have at least one project.");
-      return;
-    }
     if (!confirm("Delete this project and all its tasks?")) return;
 
     await fetch(`/api/projects/${currentProjectId}`, { method: "DELETE" });
     const remaining = projects.filter((p) => p.id !== currentProjectId);
-    setProjects(remaining);
-    setCurrentProjectId(remaining[0]?.id || null);
+
+    if (remaining.length > 0) {
+      setProjects(remaining);
+      setCurrentProjectId(remaining[0]?.id || null);
+    } else {
+      // Auto-create a new default project when the last one is deleted
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "My Project", color: "#6CC5C0" }),
+      });
+      if (res.ok) {
+        const project = await res.json();
+        setProjects([project]);
+        setCurrentProjectId(project.id);
+      } else {
+        setProjects([]);
+        setCurrentProjectId(null);
+      }
+    }
   }
 
   async function handleSaveTask(taskData: Partial<TaskData>) {
