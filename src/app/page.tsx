@@ -438,7 +438,7 @@ export default function Home() {
             </div>
 
             {/* Task table + Gantt: stack on mobile, side-by-side on desktop */}
-            <div className="flex flex-col gap-0 overflow-hidden rounded-lg border border-[#3A4149] lg:flex-row">
+            <div className="flex max-h-[calc(100vh-180px)] flex-col gap-0 overflow-hidden rounded-lg border border-[#3A4149] lg:flex-row">
               <div className="max-h-[50vh] flex-none overflow-auto border-b border-[#3A4149] bg-[#1A1D21] lg:max-h-none lg:min-w-[600px] lg:border-b-0 lg:border-r">
                 <TaskTable
                   displayItems={displayList}
@@ -449,7 +449,7 @@ export default function Home() {
                   onReorder={handleReorder}
                 />
               </div>
-              <div className="flex min-h-[300px] flex-1 flex-col overflow-hidden bg-[#1A1D21]">
+              <div className="flex-1 overflow-auto bg-[#1A1D21]">
                 <GanttTimeline
                   displayItems={displayList}
                   onEditTask={openEditTask}
