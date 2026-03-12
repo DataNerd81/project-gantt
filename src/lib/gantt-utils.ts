@@ -55,18 +55,25 @@ export function recalcParent(
 
   let totalWeightedProgress = 0;
   let totalDays = 0;
-  let minStart: Date | null = null;
+  let minStart = new Date(children[0].startDate + "T00:00:00");
+  let maxEnd = new Date(minStart);
+  maxEnd.setDate(maxEnd.getDate() + children[0].days);
 
   children.forEach((c) => {
     const s = new Date(c.startDate + "T00:00:00");
-    if (!minStart || s < minStart) minStart = new Date(s);
+    const e = new Date(s);
+    e.setDate(e.getDate() + c.days);
+    if (s < minStart) minStart = new Date(s);
+    if (e > maxEnd) maxEnd = new Date(e);
     totalWeightedProgress += c.progress * c.days;
     totalDays += c.days;
   });
 
+  const spanDays = Math.round((maxEnd.getTime() - minStart.getTime()) / 86400000);
+
   return {
-    startDate: minStart!.toISOString().split("T")[0],
-    days: Math.max(1, totalDays),
+    startDate: minStart.toISOString().split("T")[0],
+    days: Math.max(1, spanDays),
     progress: totalDays > 0 ? Math.round(totalWeightedProgress / totalDays) : 0,
   };
 }
