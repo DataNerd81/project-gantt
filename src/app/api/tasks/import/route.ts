@@ -171,11 +171,13 @@ export async function POST(request: NextRequest) {
         progress = Math.min(100, Math.max(0, progress));
       }
 
+      const categoryVal =
+        categoryIdx >= 0 && cols[categoryIdx] ? cols[categoryIdx].trim() : "";
       const isMilestone =
-        milestoneIdx >= 0 && cols[milestoneIdx]
+        (milestoneIdx >= 0 && cols[milestoneIdx]
           ? cols[milestoneIdx].toLowerCase() === "true" ||
             cols[milestoneIdx] === "1"
-          : false;
+          : false) || categoryVal.toLowerCase() === "milestone";
 
       const id = `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${i}`;
 
