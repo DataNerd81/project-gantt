@@ -73,7 +73,12 @@ export function ProjectSelector({
     <div className="flex items-center gap-1">
       <Select value={currentProjectId || ""} onValueChange={(v) => { if (v) onSelect(v); }}>
         <SelectTrigger className="w-[240px] border-[#3A4149] bg-[#262B30] text-white">
-          <SelectValue placeholder="Select a project" />
+          <SelectValue placeholder="Select a project">
+            {(value: string | null) => {
+              const p = projects.find((proj) => proj.id === value);
+              return p ? p.name : "Select a project";
+            }}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent className="border-[#3A4149] bg-[#262B30] text-white">
           {projects.map((p) => (
