@@ -366,7 +366,7 @@ export default function Home() {
               variant="outline"
               size="sm"
               onClick={handleDeleteProject}
-              className="hidden border-[#3A4149] text-red-400 hover:bg-red-900/20 sm:inline-flex"
+              className="border-[#3A4149] text-red-400 hover:bg-red-900/20"
             >
               Delete Project
             </Button>
