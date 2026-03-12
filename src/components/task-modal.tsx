@@ -211,9 +211,16 @@ export function TaskModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Parent Task</Label>
-              <Select value={parentId} onValueChange={(v) => { setParentId(v || ""); }}>
+              <Select value={parentId || "none"} onValueChange={(v) => { setParentId(v === "none" ? "" : (v ?? "")); }}>
                 <SelectTrigger className="border-[#3A4149] bg-[#262B30] text-white">
-                  <SelectValue placeholder="(Top-level task)" />
+                  <span>
+                    {parentId
+                      ? (() => {
+                          const match = topLevelTasks.find((item) => item.task.id === parentId);
+                          return match ? `${match.displayNumber}. ${match.task.name}` : "(Top-level task)";
+                        })()
+                      : "(Top-level task)"}
+                  </span>
                 </SelectTrigger>
                 <SelectContent className="border-[#3A4149] bg-[#262B30] text-white">
                   <SelectItem value="none">(Top-level task)</SelectItem>
