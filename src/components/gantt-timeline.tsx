@@ -196,14 +196,14 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
                   left,
                   top: vi * 35 + 12,
                   width,
-                  background: t.color || "#6CC5C0",
+                  background: "rgb(255, 191, 22)",
                 }}
                 title={`${t.name}: ${t.progress}% (${t.days}d)`}
                 onClick={() => onEditTask(t.id)}
               >
                 <div
                   className="h-full rounded-sm"
-                  style={{ width: `${t.progress}%`, background: "#FBBF24" }}
+                  style={{ width: `${t.progress}%`, background: "rgb(110, 199, 204)" }}
                 />
               </div>
             );
@@ -217,7 +217,7 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
                 left,
                 top: vi * 35 + 6,
                 width,
-                background: t.color || "#6CC5C0",
+                background: "rgb(251, 225, 152)",
               }}
               title={`${t.name}: ${t.progress}% (${t.days}d)`}
               onClick={() => onEditTask(t.id)}
@@ -226,11 +226,10 @@ export function GanttTimeline({ displayItems, onEditTask }: GanttTimelineProps) 
                 className="absolute inset-0 rounded-[3px]"
                 style={{
                   width: `${t.progress}%`,
-                  background: "#FBBF24",
-                  opacity: 0.45,
+                  background: "rgb(191, 232, 230)",
                 }}
               />
-              <span className="relative z-10 truncate px-1 text-[10px] font-medium text-white mix-blend-difference">
+              <span className="relative z-10 truncate px-1 text-[10px] font-medium text-black">
                 {t.name}
               </span>
             </div>
