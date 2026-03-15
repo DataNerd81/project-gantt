@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ProjectData, TaskData } from "@/lib/types";
 import { buildDisplayList, buildNumberMap, recalcParent, recalcAllParents } from "@/lib/gantt-utils";
+import { generateProjectPDF } from "@/lib/pdf-report";
 import { LoginGate } from "@/components/login-gate";
 import { ProjectSelector } from "@/components/project-selector";
 import { ProjectModal } from "@/components/project-modal";
@@ -468,6 +469,16 @@ export default function Home() {
               >
                 Import CSV
               </Button>
+              {currentProject && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generateProjectPDF(currentProject)}
+                  className="border-[#3A4149] text-xs text-[#8899A6] hover:bg-[#262B30]"
+                >
+                  PDF
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
